@@ -195,13 +195,15 @@ export async function getTotalUsers() {
   return result.length;
 }
 
-export async function generateDepositAddress(userId: number): Promise<string> {
-  // Gerar um endereço único baseado no ID do usuário
-  // Usa timestamp e ID do usuário para criar endereço único
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  const addressPart = `${userId}${timestamp}${random}`.substring(0, 40);
-  return `0x${addressPart.padEnd(40, '0')}`;
+export async function generateDepositAddress(userId: number, currency: 'TON' | 'BEP20' = 'TON'): Promise<string> {
+  // Gerar endereço derivado real da seed phrase
+  const { generateTonDepositAddress, generateBep20DepositAddress } = await import('./blockchain-wallet');
+  
+  if (currency === 'TON') {
+    return generateTonDepositAddress(userId);
+  } else {
+    return generateBep20DepositAddress(userId);
+  }
 }
 
 // RDX Token Functions
