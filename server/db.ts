@@ -198,7 +198,8 @@ export async function getTotalUsers() {
 export async function generateDepositAddress(userId: number): Promise<string> {
   // Gerar um endereço único baseado no ID do usuário
   // Em produção, isso seria derivado da seed phrase
-  const hash = require('crypto').createHash('sha256');
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256');
   hash.update(`deposit-${userId}-${Date.now()}`);
   return `0x${hash.digest('hex').substring(0, 40)}`;
 }
