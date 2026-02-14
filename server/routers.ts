@@ -20,7 +20,6 @@ export const appRouter = router({
     }),
   }),
 
-  // Geradores
   generators: router({
     list: publicProcedure.query(() => GENERATORS),
     
@@ -46,7 +45,6 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient balance" });
         }
 
-        // Create user item
         const now = new Date();
         const expiresAt = new Date(now.getTime() + generator.lifespan * 24 * 60 * 60 * 1000);
 
@@ -60,7 +58,6 @@ export const appRouter = router({
           expiresAt,
         });
 
-        // Update user balance
         const newBalance = (userBalance - generator.cost).toFixed(8);
         await db.updateUserBalance(ctx.user.id, newBalance);
 
@@ -68,7 +65,6 @@ export const appRouter = router({
       }),
   }),
 
-  // Carteira
   wallet: router({
     getBalance: protectedProcedure.query(async ({ ctx }) => {
       const user = await db.getUserById(ctx.user.id);
@@ -83,7 +79,6 @@ export const appRouter = router({
       .input(z.object({
         amount: z.string(),
         userAddress: z.string().min(1),
-        destinationAddress: z.string().min(1),
       }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
@@ -91,48 +86,27 @@ export const appRouter = router({
           throw new TRPCError({ code: "UNAUTHORIZED" });
         }
 
-        // Check if user already deposited today
-        if (user.lastDepositAt) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const lastDeposit = new Date(user.lastDepositAt);
-          lastDeposit.setHours(0, 0, 0, 0);
-
-          if (today.getTime() === lastDeposit.getTime()) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: "Already deposited today" });
-          }
+        const depositAmount = parseFloat(input.amount);
+        if (depositAmount <= 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be greater than 0" });
         }
 
-        // Create deposit request
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour
+        const depositAddress = await db.generateDepositAddress(ctx.user.id);
 
         await db.createDepositRequest({
           userId: ctx.user.id,
           amount: input.amount,
           userAddress: input.userAddress,
-          destinationAddress: input.destinationAddress,
-          expiresAt,
+          depositAddress: depositAddress,
           status: "pending",
         });
 
-        // Update last deposit time
-        await db.updateLastDepositAt(ctx.user.id);
-
-        // Create transaction record (will be auto-approved)
-        await db.createTransaction({
-          userId: ctx.user.id,
-          type: "deposit",
+        return { 
+          success: true, 
+          depositAddress,
           amount: input.amount,
-          userAddress: input.userAddress,
-          status: "approved",
-        });
-
-        // Update balance immediately (auto-approval)
-        const newBalance = (parseFloat(user.balance) + parseFloat(input.amount)).toFixed(8);
-        await db.updateUserBalance(ctx.user.id, newBalance);
-
-        return { success: true, newBalance, expiresAt };
+          message: "Endereco gerado. Aguardando deposito na blockchain..."
+        };
       }),
 
     withdraw: protectedProcedure
@@ -149,28 +123,29 @@ export const appRouter = router({
         const userBalance = parseFloat(user.balance);
         const withdrawAmount = parseFloat(input.amount);
 
+        if (withdrawAmount <= 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be greater than 0" });
+        }
+
         if (userBalance < withdrawAmount) {
           throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient balance" });
         }
 
-        // Create transaction (auto-approved)
         await db.createTransaction({
           userId: ctx.user.id,
           type: "withdrawal",
           amount: input.amount,
           userAddress: input.userAddress,
-          status: "approved",
+          status: "pending",
         });
 
-        // Update balance immediately
         const newBalance = (userBalance - withdrawAmount).toFixed(8);
         await db.updateUserBalance(ctx.user.id, newBalance);
 
-        return { success: true, newBalance };
+        return { success: true, newBalance, message: "Saque solicitado. Transferindo para sua carteira..." };
       }),
   }),
 
-  // Admin
   admin: router({
     getStats: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") {

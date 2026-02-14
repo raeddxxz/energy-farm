@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy, Check } from "lucide-react";
 
 export default function Wallet() {
   const { t } = useLanguage();
@@ -13,6 +13,8 @@ export default function Wallet() {
   const [depositAddress, setDepositAddress] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawAddress, setWithdrawAddress] = useState("");
+  const [generatedDepositAddr, setGeneratedDepositAddr] = useState<string | null>(null);
+  const [copiedAddr, setCopiedAddr] = useState(false);
 
   const { data: balance, refetch: refetchBalance } = trpc.wallet.getBalance.useQuery();
   const { data: transactions } = trpc.wallet.getTransactions.useQuery();
@@ -26,17 +28,16 @@ export default function Wallet() {
     }
 
     try {
-      await depositMutation.mutateAsync({
+      const result = await depositMutation.mutateAsync({
         amount: depositAmount,
         userAddress: depositAddress,
-        destinationAddress: "UQBtLYHDBWcdq_LMFXRwrSo4aUQVXfao3q5WSyRbnqdS0eb3",
       });
-      toast.success(t("deposit.success"));
+      setGeneratedDepositAddr(result.depositAddress);
+      toast.success("Endereco gerado! Deposite USDT/TON para este endereco");
       setDepositAmount("");
       setDepositAddress("");
-      refetchBalance();
     } catch (error: any) {
-      toast.error(error.message || t("deposit.error"));
+      toast.error(error.message || "Erro ao gerar endereco");
     }
   };
 
@@ -51,13 +52,19 @@ export default function Wallet() {
         amount: withdrawAmount,
         userAddress: withdrawAddress,
       });
-      toast.success(t("withdraw.success"));
+      toast.success("Saque solicitado! Transferindo para sua carteira...");
       setWithdrawAmount("");
       setWithdrawAddress("");
       refetchBalance();
     } catch (error: any) {
-      toast.error(error.message || t("withdraw.error"));
+      toast.error(error.message || "Erro ao processar saque");
     }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedAddr(true);
+    setTimeout(() => setCopiedAddr(false), 2000);
   };
 
   return (
@@ -96,36 +103,71 @@ export default function Wallet() {
         {activeTab === "deposit" && (
           <Card className="bg-slate-800 border-slate-700 p-6 space-y-4">
             <h2 className="text-xl font-semibold text-white">{t("deposit.title")}</h2>
-            <div>
-              <label className="block text-slate-300 text-sm mb-2">{t("deposit.amount")}</label>
-              <input
-                type="number"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="0.00"
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-              />
-            </div>
-            <div>
-              <label className="block text-slate-300 text-sm mb-2">{t("deposit.userAddress")}</label>
-              <input
-                type="text"
-                value={depositAddress}
-                onChange={(e) => setDepositAddress(e.target.value)}
-                placeholder="Seu endereço..."
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-              />
-            </div>
-            <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3 text-yellow-200 text-sm">
-              {t("deposit.warning")}
-            </div>
-            <Button
-              onClick={handleDeposit}
-              disabled={depositMutation.isPending}
-              className="w-full"
-            >
-              {depositMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : t("deposit.confirm")}
-            </Button>
+            
+            {!generatedDepositAddr ? (
+              <>
+                <div>
+                  <label className="block text-slate-300 text-sm mb-2">Quantidade (USDT/TON)</label>
+                  <input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 text-sm mb-2">Seu Endereco de Carteira</label>
+                  <input
+                    type="text"
+                    value={depositAddress}
+                    onChange={(e) => setDepositAddress(e.target.value)}
+                    placeholder="Seu endereco..."
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  />
+                </div>
+                <Button
+                  onClick={handleDeposit}
+                  disabled={depositMutation.isPending}
+                  className="w-full"
+                >
+                  {depositMutation.isPending ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    "Gerar Endereco de Deposito"
+                  )}
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-green-900 border border-green-700 rounded-lg p-4">
+                  <p className="text-green-200 text-sm mb-2">Endereco gerado com sucesso!</p>
+                  <div className="bg-slate-900 p-3 rounded-lg flex items-center justify-between">
+                    <code className="text-green-400 text-xs break-all">{generatedDepositAddr}</code>
+                    <button
+                      onClick={() => copyToClipboard(generatedDepositAddr)}
+                      className="ml-2 p-2 hover:bg-slate-700 rounded transition"
+                    >
+                      {copiedAddr ? (
+                        <Check size={16} className="text-green-400" />
+                      ) : (
+                        <Copy size={16} className="text-slate-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-yellow-900 border border-yellow-700 rounded-lg p-3 text-yellow-200 text-sm">
+                  Deposite USDT (BEP20) ou TON para este endereco. Assim que receber, seu saldo sera atualizado automaticamente.
+                </div>
+                <Button
+                  onClick={() => setGeneratedDepositAddr(null)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Novo Deposito
+                </Button>
+              </div>
+            )}
           </Card>
         )}
 
@@ -133,7 +175,7 @@ export default function Wallet() {
           <Card className="bg-slate-800 border-slate-700 p-6 space-y-4">
             <h2 className="text-xl font-semibold text-white">{t("withdraw.title")}</h2>
             <div>
-              <label className="block text-slate-300 text-sm mb-2">{t("withdraw.amount")}</label>
+              <label className="block text-slate-300 text-sm mb-2">Quantidade para Sacar</label>
               <input
                 type="number"
                 value={withdrawAmount}
@@ -143,21 +185,28 @@ export default function Wallet() {
               />
             </div>
             <div>
-              <label className="block text-slate-300 text-sm mb-2">{t("withdraw.userAddress")}</label>
+              <label className="block text-slate-300 text-sm mb-2">Seu Endereco para Receber</label>
               <input
                 type="text"
                 value={withdrawAddress}
                 onChange={(e) => setWithdrawAddress(e.target.value)}
-                placeholder="Seu endereço..."
+                placeholder="Seu endereco..."
                 className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
               />
+            </div>
+            <div className="bg-blue-900 border border-blue-700 rounded-lg p-3 text-blue-200 text-sm">
+              O saque sera processado automaticamente e transferido para seu endereco.
             </div>
             <Button
               onClick={handleWithdraw}
               disabled={withdrawMutation.isPending}
               className="w-full"
             >
-              {withdrawMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : t("withdraw.confirm")}
+              {withdrawMutation.isPending ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                "Confirmar Saque"
+              )}
             </Button>
           </Card>
         )}
@@ -180,9 +229,9 @@ export default function Wallet() {
                       tx.status === "pending" ? "bg-yellow-900 text-yellow-200" :
                       "bg-red-900 text-red-200"
                     }`}>
-                      {tx.status === "approved" && t("admin.approved")}
-                      {tx.status === "pending" && t("admin.pending")}
-                      {tx.status === "rejected" && t("admin.rejected")}
+                      {tx.status === "approved" && "Aprovado"}
+                      {tx.status === "pending" && "Pendente"}
+                      {tx.status === "rejected" && "Recusado"}
                     </span>
                   </div>
                 ))}
