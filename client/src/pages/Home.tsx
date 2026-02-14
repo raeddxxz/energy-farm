@@ -1,31 +1,120 @@
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
+import { trpc } from "@/lib/trpc";
+import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { getLoginUrl } from "@/const";
-import { Streamdown } from 'streamdown';
+import { useEffect, useState } from "react";
 
-/**
- * All content in this page are only for example, replace with your own feature implementation
- * When building pages, remember your instructions in Frontend Workflow, Frontend Best Practices, Design Guide and Common Pitfalls
- */
 export default function Home() {
-  // The userAuth hooks provides authentication state
-  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
-  let { user, loading, error, isAuthenticated, logout } = useAuth();
+  const { t } = useLanguage();
+  const { user } = useAuth();
+  const [totalDailyProfit, setTotalDailyProfit] = useState(0);
+  const [accumulatedProfit, setAccumulatedProfit] = useState(0);
 
-  // If theme is switchable in App.tsx, we can implement theme toggling like this:
-  // const { theme, toggleTheme } = useTheme();
+  const { data: items, isLoading } = trpc.generators.getUserItems.useQuery();
+
+  useEffect(() => {
+    if (items) {
+      const total = items.reduce((sum, item) => {
+        const dailyProfit = parseFloat(item.dailyProfit);
+        return sum + dailyProfit;
+      }, 0);
+      setTotalDailyProfit(total);
+    }
+  }, [items]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAccumulatedProfit((prev) => {
+        const secondlyProfit = totalDailyProfit / 86400;
+        return prev + secondlyProfit;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [totalDailyProfit]);
+
+  const getTimeRemaining = (expiresAt: Date) => {
+    const now = new Date();
+    const diff = new Date(expiresAt).getTime() - now.getTime();
+
+    if (diff <= 0) return t("principal.expired");
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) return `${days}${t("principal.days")} ${hours}${t("principal.hours")}`;
+    if (hours > 0) return `${hours}${t("principal.hours")} ${minutes}${t("principal.minutes")}`;
+    return `${minutes}${t("principal.minutes")}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <main>
-        {/* Example: lucide-react for icons */}
-        <Loader2 className="animate-spin" />
-        Example Page
-        {/* Example: Streamdown for markdown rendering */}
-        <Streamdown>Any **markdown** content</Streamdown>
-        <Button variant="default">Example Button</Button>
-      </main>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8 pt-4">
+          <h1 className="text-3xl font-bold text-white mb-2">{t("principal.title")}</h1>
+          <p className="text-slate-400">Bem-vindo, {user?.name}</p>
+        </div>
+
+        <Card className="bg-slate-800 border-slate-700 mb-6 p-6">
+          <div className="text-center">
+            <p className="text-slate-400 text-sm mb-2">{t("principal.totalDaily")}</p>
+            <div className="flex items-baseline justify-center gap-2">
+              <span className="text-4xl font-bold text-green-400">
+                {totalDailyProfit.toFixed(4)}
+              </span>
+              <span className="text-slate-400">/ dia</span>
+            </div>
+            <p className="text-slate-500 text-sm mt-2">
+              Ganho em tempo real: +{accumulatedProfit.toFixed(6)}
+            </p>
+          </div>
+        </Card>
+
+        {items && items.length > 0 ? (
+          <div className="space-y-4">
+            {items.map((item) => (
+              <Card key={item.id} className="bg-slate-800 border-slate-700 p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{item.itemType}</h3>
+                    <p className="text-slate-400 text-sm">
+                      {t("principal.purchasePrice")}: {item.purchasePrice}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-green-400 font-semibold">
+                      +{parseFloat(item.dailyProfit).toFixed(4)}/dia
+                    </p>
+                    <p className="text-slate-400 text-sm">
+                      {t("principal.timeRemaining")}: {getTimeRemaining(item.expiresAt)}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="bg-slate-800 border-slate-700 p-8 text-center">
+            <p className="text-slate-400 mb-4">{t("principal.noItems")}</p>
+            <a
+              href="/shop"
+              className="inline-block px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+            >
+              {t("nav.loja")}
+            </a>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

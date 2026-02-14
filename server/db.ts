@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, userItems, InsertUserItem, transactions, InsertTransaction, depositRequests, InsertDepositRequest } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,107 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function getUserById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// Geradores (User Items)
+export async function createUserItem(item: InsertUserItem) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(userItems).values(item);
+}
+
+export async function getUserItems(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(userItems).where(eq(userItems.userId, userId));
+}
+
+export async function getUserActiveItems(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(userItems)
+    .where(and(
+      eq(userItems.userId, userId),
+      gte(userItems.expiresAt, new Date())
+    ));
+}
+
+// Transacoes
+export async function createTransaction(transaction: InsertTransaction) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(transactions).values(transaction);
+  return result;
+}
+
+export async function getUserTransactions(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(transactions)
+    .where(eq(transactions.userId, userId))
+    .orderBy(desc(transactions.createdAt));
+}
+
+export async function getAllTransactions() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(transactions).orderBy(desc(transactions.createdAt));
+}
+
+export async function getTotalDeposited() {
+  const db = await getDb();
+  if (!db) return "0";
+  const result = await db.select({ total: sum(transactions.amount) })
+    .from(transactions)
+    .where(eq(transactions.type, "deposit"));
+  return result[0]?.total?.toString() || "0";
+}
+
+// Solicitacoes de Deposito
+export async function createDepositRequest(request: InsertDepositRequest) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(depositRequests).values(request);
+}
+
+export async function getDepositRequests(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(depositRequests)
+    .where(eq(depositRequests.userId, userId))
+    .orderBy(desc(depositRequests.createdAt));
+}
+
+export async function getAllDepositRequests() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(depositRequests).orderBy(desc(depositRequests.createdAt));
+}
+
+export async function updateUserBalance(userId: number, newBalance: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users)
+    .set({ balance: newBalance, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+export async function updateLastDepositAt(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users)
+    .set({ lastDepositAt: new Date(), updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
+
+export async function getTotalUsers() {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select().from(users);
+  return result.length;
+}

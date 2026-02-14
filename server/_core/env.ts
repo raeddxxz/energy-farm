@@ -7,4 +7,7 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  blockchainSeedPhrase: process.env.BLOCKCHAIN_SEED_PHRASE ?? "",
+  tonEndpoint: process.env.TON_ENDPOINT ?? "",
+  bep20RpcEndpoint: process.env.BEP20_RPC_ENDPOINT ?? "",
 };
