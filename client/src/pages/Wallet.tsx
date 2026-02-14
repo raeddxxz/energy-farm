@@ -34,7 +34,6 @@ export default function Wallet() {
     try {
       const result = await depositMutation.mutateAsync({
         amount: depositAmount,
-        userAddress: "",
       });
       setGeneratedDepositAddr(result.depositAddress);
       toast.success("Endereco gerado! Deposite USDT/TON para este endereco");
@@ -149,7 +148,7 @@ export default function Wallet() {
             {!generatedDepositAddr ? (
               <>
                 <div>
-                  <label className="block text-slate-300 text-sm mb-2">Quantidade (USDT)</label>
+                  <label className="block text-slate-300 text-sm mb-2">Quantidade USDT para Depositar</label>
                   <input
                     type="number"
                     value={depositAmount}

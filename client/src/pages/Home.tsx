@@ -2,8 +2,10 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function Home() {
   const { t } = useLanguage();
@@ -12,6 +14,8 @@ export default function Home() {
   const [accumulatedProfit, setAccumulatedProfit] = useState(0);
 
   const { data: items, isLoading } = trpc.generators.getUserItems.useQuery();
+  const collectMutation = trpc.generators.collectRewards.useMutation();
+  const { refetch: refetchRdx } = trpc.rdx.getBalance.useQuery();
 
   useEffect(() => {
     if (items) {
@@ -33,6 +37,16 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [totalDailyProfit]);
+
+  const handleCollect = async () => {
+    try {
+      const result = await collectMutation.mutateAsync();
+      toast.success(`Coletado ${result.rdxCollected} RDX!`);
+      refetchRdx();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao coletar");
+    }
+  };
 
   const getTimeRemaining = (expiresAt: Date) => {
     const now = new Date();
@@ -77,6 +91,17 @@ export default function Home() {
             <p className="text-slate-500 text-sm mt-2">
               Ganho em tempo real: +{accumulatedProfit.toFixed(6)}
             </p>
+            <Button
+              onClick={handleCollect}
+              disabled={collectMutation.isPending || !items || items.length === 0}
+              className="mt-4 w-full"
+            >
+              {collectMutation.isPending ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                "Coletar RDX"
+              )}
+            </Button>
           </div>
         </Card>
 

@@ -63,6 +63,26 @@ export const appRouter = router({
 
         return { success: true, newBalance };
       }),
+
+    collectRewards: protectedProcedure.mutation(async ({ ctx }) => {
+      const items = await db.getUserItems(ctx.user.id);
+      const now = new Date();
+      let totalRdxRewards = 0;
+
+      for (const item of items) {
+        if (new Date(item.expiresAt) > now) {
+          const daysPassed = (now.getTime() - new Date(item.purchasedAt).getTime()) / (1000 * 60 * 60 * 24);
+          const rewards = parseFloat(item.dailyProfit) * daysPassed;
+          totalRdxRewards += rewards;
+        }
+      }
+
+      const currentRdx = parseFloat(await db.getUserRdxBalance(ctx.user.id));
+      const newRdxBalance = (currentRdx + totalRdxRewards).toFixed(8);
+      await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
+
+      return { success: true, rdxCollected: totalRdxRewards.toFixed(8), newRdxBalance };
+    }),
   }),
 
   wallet: router({
@@ -78,7 +98,6 @@ export const appRouter = router({
     deposit: protectedProcedure
       .input(z.object({
         amount: z.string(),
-        userAddress: z.string().min(1),
       }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
@@ -96,7 +115,7 @@ export const appRouter = router({
         await db.createDepositRequest({
           userId: ctx.user.id,
           amount: input.amount,
-          userAddress: input.userAddress,
+          userAddress: "",
           depositAddress: depositAddress,
           status: "pending",
         });

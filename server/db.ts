@@ -296,3 +296,12 @@ export async function getTotalRdxSupply(): Promise<string> {
   
   return result[0]?.total?.toString() || "0";
 }
+
+export async function updateUserItemPurchaseDate(itemId: number, newDate: Date) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(userItems)
+    .set({ purchasedAt: newDate })
+    .where(eq(userItems.id, itemId));
+}
