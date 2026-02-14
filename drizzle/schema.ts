@@ -1,4 +1,5 @@
 import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, bigint } from "drizzle-orm/mysql-core";
+import { eq, and, gte, desc, sum } from "drizzle-orm";
 
 /**
  * Core user table backing auth flow.
@@ -64,8 +65,7 @@ export const depositRequests = mysqlTable("depositRequests", {
   userId: int("userId").notNull(),
   amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
   userAddress: varchar("userAddress", { length: 255 }).notNull(),
-  destinationAddress: varchar("destinationAddress", { length: 255 }).notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
+  depositAddress: varchar("depositAddress", { length: 255 }).notNull(),
   status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -73,3 +73,5 @@ export const depositRequests = mysqlTable("depositRequests", {
 
 export type DepositRequest = typeof depositRequests.$inferSelect;
 export type InsertDepositRequest = typeof depositRequests.$inferInsert;
+
+// Imports para db.ts

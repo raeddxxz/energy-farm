@@ -15,6 +15,13 @@
       "when": 1771100330786,
       "tag": "0001_flimsy_thaddeus_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771103613716,
+      "tag": "0002_nasty_albert_cleary",
+      "breakpoints": true
     }
   ]
 }
