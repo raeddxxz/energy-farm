@@ -30,20 +30,38 @@ export default function Home() {
   }, [items]);
 
   useEffect(() => {
+    // Carregar ganhos salvos do localStorage
+    const savedProfit = localStorage.getItem(`accumulated_profit_${user?.id}`);
+    if (savedProfit) {
+      setAccumulatedProfit(parseFloat(savedProfit));
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       setAccumulatedProfit((prev) => {
         const secondlyProfit = totalDailyProfit / 86400;
-        return prev + secondlyProfit;
+        const newProfit = prev + secondlyProfit;
+        // Salvar ganhos a cada segundo
+        if (user?.id) {
+          localStorage.setItem(`accumulated_profit_${user.id}`, newProfit.toString());
+        }
+        return newProfit;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [totalDailyProfit]);
+  }, [totalDailyProfit, user?.id]);
 
   const handleCollect = async () => {
     try {
       const result = await collectMutation.mutateAsync();
       toast.success(`Coletado ${result.rdxCollected} RDX!`);
+      // Limpar ganhos acumulados após coletar
+      if (user?.id) {
+        localStorage.removeItem(`accumulated_profit_${user.id}`);
+      }
+      setAccumulatedProfit(0);
       refetchRdx();
     } catch (error: any) {
       toast.error(error.message || "Erro ao coletar");
