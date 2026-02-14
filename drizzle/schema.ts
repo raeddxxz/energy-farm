@@ -1,6 +1,9 @@
 import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, varchar, bigint } from "drizzle-orm/mysql-core";
 import { eq, and, gte, desc, sum } from "drizzle-orm";
 
+// Adicionar coluna rdxBalance à tabela users
+// Será feito através de migração
+
 /**
  * Core user table backing auth flow.
  * Extend this file with additional tables as your product grows.
@@ -74,4 +77,41 @@ export const depositRequests = mysqlTable("depositRequests", {
 export type DepositRequest = typeof depositRequests.$inferSelect;
 export type InsertDepositRequest = typeof depositRequests.$inferInsert;
 
-// Imports para db.ts
+// Tabela de saldo de RDX por usuário
+export const userRdxBalance = mysqlTable("userRdxBalance", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull().unique(),
+  rdxBalance: decimal("rdxBalance", { precision: 20, scale: 8 }).default("0").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type UserRdxBalance = typeof userRdxBalance.$inferSelect;
+export type InsertUserRdxBalance = typeof userRdxBalance.$inferInsert;
+
+// Tabela de histórico de preço do RDX
+export const rdxPriceHistory = mysqlTable("rdxPriceHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  price: decimal("price", { precision: 20, scale: 8 }).notNull(),
+  totalSupply: decimal("totalSupply", { precision: 20, scale: 8 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RdxPriceHistory = typeof rdxPriceHistory.$inferSelect;
+export type InsertRdxPriceHistory = typeof rdxPriceHistory.$inferInsert;
+
+// Tabela de conversões USDT <-> RDX
+export const conversions = mysqlTable("conversions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  fromCurrency: mysqlEnum("fromCurrency", ["USDT", "RDX"]).notNull(),
+  toCurrency: mysqlEnum("toCurrency", ["USDT", "RDX"]).notNull(),
+  fromAmount: decimal("fromAmount", { precision: 20, scale: 8 }).notNull(),
+  toAmount: decimal("toAmount", { precision: 20, scale: 8 }).notNull(),
+  rate: decimal("rate", { precision: 20, scale: 8 }).notNull(),
+  fee: decimal("fee", { precision: 20, scale: 8 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Conversion = typeof conversions.$inferSelect;
+export type InsertConversion = typeof conversions.$inferInsert;

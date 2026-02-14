@@ -146,6 +146,90 @@ export const appRouter = router({
       }),
   }),
 
+  rdx: router({
+    getPrice: publicProcedure.query(async () => {
+      return db.calculateRdxPrice();
+    }),
+
+    getBalance: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserRdxBalance(ctx.user.id);
+    }),
+
+    convert: protectedProcedure
+      .input(z.object({
+        fromCurrency: z.enum(["USDT", "RDX"]),
+        amount: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await db.getUserById(ctx.user.id);
+        if (!user) {
+          throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+
+        const amount = parseFloat(input.amount);
+        if (amount <= 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be greater than 0" });
+        }
+
+        const rdxPrice = parseFloat(await db.calculateRdxPrice());
+        const fee = amount * 0.01;
+        const netAmount = amount - fee;
+
+        if (input.fromCurrency === "USDT") {
+          const userBalance = parseFloat(user.balance);
+          if (userBalance < amount) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient USDT balance" });
+          }
+
+          const rdxAmount = netAmount / rdxPrice;
+          const newUsdtBalance = (userBalance - amount).toFixed(8);
+          const currentRdx = parseFloat(await db.getUserRdxBalance(ctx.user.id));
+          const newRdxBalance = (currentRdx + rdxAmount).toFixed(8);
+
+          await db.updateUserBalance(ctx.user.id, newUsdtBalance);
+          await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
+          await db.createConversion({
+            userId: ctx.user.id,
+            fromCurrency: "USDT",
+            toCurrency: "RDX",
+            fromAmount: amount.toString(),
+            toAmount: rdxAmount.toFixed(8),
+            rate: rdxPrice.toString(),
+            fee: fee.toFixed(8),
+          });
+
+          return { success: true, rdxReceived: rdxAmount.toFixed(8), fee: fee.toFixed(8) };
+        } else {
+          const currentRdx = parseFloat(await db.getUserRdxBalance(ctx.user.id));
+          if (currentRdx < amount) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "Insufficient RDX balance" });
+          }
+
+          const usdtAmount = netAmount * rdxPrice;
+          const newRdxBalance = (currentRdx - amount).toFixed(8);
+          const newUsdtBalance = (parseFloat(user.balance) + usdtAmount).toFixed(8);
+
+          await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
+          await db.updateUserBalance(ctx.user.id, newUsdtBalance);
+          await db.createConversion({
+            userId: ctx.user.id,
+            fromCurrency: "RDX",
+            toCurrency: "USDT",
+            fromAmount: amount.toString(),
+            toAmount: usdtAmount.toFixed(8),
+            rate: rdxPrice.toString(),
+            fee: fee.toFixed(8),
+          });
+
+          return { success: true, usdtReceived: usdtAmount.toFixed(8), fee: fee.toFixed(8) };
+        }
+      }),
+
+    getConversionHistory: protectedProcedure.query(async ({ ctx }) => {
+      return db.getConversionHistory(ctx.user.id);
+    }),
+  }),
+
   admin: router({
     getStats: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role !== "admin") {
