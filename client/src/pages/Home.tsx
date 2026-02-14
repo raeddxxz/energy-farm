@@ -13,8 +13,10 @@ export default function Home() {
   const [totalDailyProfit, setTotalDailyProfit] = useState(0);
   const [accumulatedProfit, setAccumulatedProfit] = useState(0);
 
-  const { data: items, isLoading } = trpc.generators.getUserItems.useQuery();
+  const { data: items, isLoading, refetch: refetchItems } = trpc.generators.getUserItems.useQuery();
   const collectMutation = trpc.generators.collectRewards.useMutation();
+  const sellMutation = trpc.generators.sellItem.useMutation();
+  const { refetch: refetchBalance } = trpc.wallet.getBalance.useQuery();
   const { refetch: refetchRdx } = trpc.rdx.getBalance.useQuery();
 
   useEffect(() => {
@@ -123,6 +125,29 @@ export default function Home() {
                     <p className="text-slate-400 text-sm">
                       {t("principal.timeRemaining")}: {getTimeRemaining(item.expiresAt)}
                     </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    onClick={async () => {
+                      const sellPrice = (parseFloat(item.purchasePrice) * 0.5).toFixed(8);
+                      try {
+                        await sellMutation.mutateAsync({ itemId: item.id });
+                        toast.success(`Vendido por ${sellPrice} USDT`);
+                        refetchItems();
+                        refetchBalance();
+                      } catch (error: any) {
+                        toast.error(error.message || "Erro");
+                      }
+                    }}
+                    disabled={sellMutation.isPending}
+                    variant="outline"
+                    className="flex-1 text-xs"
+                  >
+                    {sellMutation.isPending ? <Loader2 className="animate-spin" size={12} /> : "Vender"}
+                  </Button>
+                  <div className="flex-1 bg-slate-700 rounded px-2 py-1 text-xs text-slate-300 text-center">
+                    Receber: {(parseFloat(item.purchasePrice) * 0.5).toFixed(8)} USDT
                   </div>
                 </div>
               </Card>

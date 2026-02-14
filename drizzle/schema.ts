@@ -41,6 +41,8 @@ export const userItems = mysqlTable("userItems", {
   lifespan: int("lifespan").notNull(), // em dias
   purchasedAt: timestamp("purchasedAt").defaultNow().notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
+  accumulatedRewards: decimal("accumulatedRewards", { precision: 20, scale: 8 }).default("0").notNull(),
+  lastCollectedAt: timestamp("lastCollectedAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

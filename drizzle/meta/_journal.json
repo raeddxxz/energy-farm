@@ -29,6 +29,13 @@
       "when": 1771103934329,
       "tag": "0003_clumsy_lifeguard",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1771105881771,
+      "tag": "0004_living_arachne",
+      "breakpoints": true
     }
   ]
 }

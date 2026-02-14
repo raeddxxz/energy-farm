@@ -22,7 +22,7 @@ export async function validateBlockchainSecrets() {
 export async function generateTonAddress(userIndex: number): Promise<string> {
   // Implementação simplificada - em produção usar TonWeb com HD wallet
   // Para agora, vamos gerar um endereço derivado baseado no hash do índice
-  const crypto = await import("crypto");
+  const crypto = require("crypto");
   const hash = crypto
     .createHash("sha256")
     .update(ENV.blockchainSeedPhrase + userIndex.toString())
@@ -38,7 +38,7 @@ export async function generateTonAddress(userIndex: number): Promise<string> {
  */
 export async function generateBep20Address(userIndex: number): Promise<string> {
   // Implementação simplificada - em produção usar ethers.js com HD wallet
-  const crypto = await import("crypto");
+  const crypto = require("crypto");
   const hash = crypto
     .createHash("sha256")
     .update(ENV.blockchainSeedPhrase + "bep20" + userIndex.toString())

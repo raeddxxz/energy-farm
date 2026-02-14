@@ -83,6 +83,29 @@ export const appRouter = router({
 
       return { success: true, rdxCollected: totalRdxRewards.toFixed(8), newRdxBalance };
     }),
+
+    sellItem: protectedProcedure
+      .input(z.object({ itemId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const items = await db.getUserItems(ctx.user.id);
+        const item = items.find(i => i.id === input.itemId);
+        
+        if (!item) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
+        }
+
+        const sellPrice = parseFloat(item.purchasePrice) * 0.5;
+        const user = await db.getUserById(ctx.user.id);
+        if (!user) {
+          throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+
+        const newBalance = (parseFloat(user.balance) + sellPrice).toFixed(8);
+        await db.updateUserBalance(ctx.user.id, newBalance);
+        await db.deleteUserItem(input.itemId);
+
+        return { success: true, sellPrice: sellPrice.toFixed(8), newBalance };
+      }),
   }),
 
   wallet: router({
@@ -106,8 +129,8 @@ export const appRouter = router({
         }
 
         const depositAmount = parseFloat(input.amount);
-        if (depositAmount <= 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be greater than 0" });
+        if (depositAmount < 1) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Minimum deposit is 1 USDT" });
         }
 
         const depositAddress = await db.generateDepositAddress(ctx.user.id);
@@ -142,8 +165,8 @@ export const appRouter = router({
         const userBalance = parseFloat(user.balance);
         const withdrawAmount = parseFloat(input.amount);
 
-        if (withdrawAmount <= 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be greater than 0" });
+        if (withdrawAmount < 1) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Minimum withdrawal is 1 USDT" });
         }
 
         if (userBalance < withdrawAmount) {
@@ -186,8 +209,8 @@ export const appRouter = router({
         }
 
         const amount = parseFloat(input.amount);
-        if (amount <= 0) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "Amount must be greater than 0" });
+        if (amount < 0.1) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Minimum conversion is 0.1 USDT" });
         }
 
         const rdxPrice = parseFloat(await db.calculateRdxPrice());

@@ -305,3 +305,10 @@ export async function updateUserItemPurchaseDate(itemId: number, newDate: Date) 
     .set({ purchasedAt: newDate })
     .where(eq(userItems.id, itemId));
 }
+
+export async function deleteUserItem(itemId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(userItems).where(eq(userItems.id, itemId));
+}
