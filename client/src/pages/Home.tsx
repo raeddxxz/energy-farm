@@ -33,21 +33,40 @@ export default function Home() {
   }, [items]);
 
   useEffect(() => {
-    // Carregar ganhos salvos do sessionStorage (persiste durante a sessão)
-    const savedProfit = sessionStorage.getItem(`accumulated_profit_${user?.id}`);
-    if (savedProfit) {
-      setAccumulatedProfit(parseFloat(savedProfit));
+    // Carregar ganhos salvos do localStorage (persiste entre sessões)
+    const savedProfit = localStorage.getItem(`accumulated_profit_${user?.id}`);
+    const lastUpdateTime = localStorage.getItem(`last_update_time_${user?.id}`);
+    
+    if (savedProfit && lastUpdateTime) {
+      const profit = parseFloat(savedProfit);
+      const lastTime = parseInt(lastUpdateTime);
+      const now = Date.now();
+      const timePassedMinutes = (now - lastTime) / (1000 * 60);
+      
+      // Se passou tempo desde a última atualização, calcular ganhos acumulados
+      if (timePassedMinutes > 0 && items && items.length > 0) {
+        const dailyProfit = items.reduce((sum, item) => {
+          return sum + parseFloat(item.dailyProfit) * 1000;
+        }, 0);
+        const accumulatedWhileAway = (dailyProfit / 1440) * timePassedMinutes;
+        const newProfit = profit + accumulatedWhileAway;
+        setAccumulatedProfit(newProfit);
+        localStorage.setItem(`accumulated_profit_${user?.id}`, newProfit.toString());
+      } else {
+        setAccumulatedProfit(profit);
+      }
     }
-  }, [user?.id]);
+  }, [user?.id, items]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setAccumulatedProfit((prev) => {
         const secondlyProfit = totalDailyProfit / 86400;
         const newProfit = prev + secondlyProfit;
-        // Salvar ganhos a cada segundo no sessionStorage
+        // Salvar ganhos a cada segundo no localStorage
         if (user?.id) {
-          sessionStorage.setItem(`accumulated_profit_${user.id}`, newProfit.toString());
+          localStorage.setItem(`accumulated_profit_${user.id}`, newProfit.toString());
+          localStorage.setItem(`last_update_time_${user?.id}`, Date.now().toString());
         }
         return newProfit;
       });
@@ -62,7 +81,8 @@ export default function Home() {
       toast.success(`Coletado ${result.rdxCollected} RDX!`);
       // Limpar ganhos acumulados após coletar
       if (user?.id) {
-        sessionStorage.removeItem(`accumulated_profit_${user.id}`);
+        localStorage.removeItem(`accumulated_profit_${user.id}`);
+        localStorage.removeItem(`last_update_time_${user?.id}`);
       }
       setAccumulatedProfit(0);
       refetchRdx();

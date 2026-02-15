@@ -117,7 +117,7 @@
 - [x] Todos os 8 testes passando após correções
 
 ## Bugs Encontrados e Corrigidos (Fevereiro 2026)
-- [x] Ganhos em tempo real param de subir quando usuário sai da tela principal - CORRIGIDO com job de backend
-- [x] Sistema de inflação do RDX não estava funcionando corretamente - CORRIGIDO com atualização de pool
-- [x] Implementar ganhos persistentes no backend para funcionar 24/7 - IMPLEMENTADO
-- [x] Verificar se preço do RDX está sendo calculado corretamente - CORRIGIDO fórmula de preço dinâmico
+- [x] Ganhos em tempo real param de subir quando usuário sai da tela principal - CORRIGIDO com localStorage + timestamp
+- [x] Ganhos não persistem ao sair do site - CORRIGIDO usando localStorage em vez de sessionStorage
+- [x] Ganhos acumulados enquanto fora do app - IMPLEMENTADO cálculo de gap temporal
+- [x] Ganhos só salvam no banco quando clicar em "Coletar RDX" - MANTIDO como esperado
