@@ -404,17 +404,17 @@ export async function setAdminSetting(key: string, value: string) {
 }
 
 // Funções de RDX Pool
-export async function getRdxPoolStats(): Promise<{ totalRdxInCirculation: string; totalRdxBurned: string }> {
+export async function getRdxPoolStats(): Promise<{ totalRdxInCirculation: string; totalRdxBurned: string; totalUsdtInPool: string }> {
   const db = await getDb();
-  if (!db) return { totalRdxInCirculation: "0", totalRdxBurned: "0" };
+  if (!db) return { totalRdxInCirculation: "0", totalRdxBurned: "0", totalUsdtInPool: "0" };
   
   const { rdxPool } = await import("../drizzle/schema");
   const result = await db.select().from(rdxPool).limit(1);
   
-  return result[0] || { totalRdxInCirculation: "0", totalRdxBurned: "0" };
+  return result[0] || { totalRdxInCirculation: "0", totalRdxBurned: "0", totalUsdtInPool: "0" };
 }
 
-export async function updateRdxPool(inCirculation: string, burned: string) {
+export async function updateRdxPool(inCirculation: string, burned: string, usdtInPool?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
@@ -426,15 +426,39 @@ export async function updateRdxPool(inCirculation: string, burned: string) {
     await db.update(rdxPool)
       .set({ 
         totalRdxInCirculation: inCirculation,
-        totalRdxBurned: burned
+        totalRdxBurned: burned,
+        ...(usdtInPool && { totalUsdtInPool: usdtInPool })
       })
       .where(eq(rdxPool.id, existing[0].id));
   } else {
     await db.insert(rdxPool).values({
       totalRdxInCirculation: inCirculation,
       totalRdxBurned: burned,
+      totalUsdtInPool: usdtInPool || "0",
     });
   }
+}
+
+export async function addUsdtToPool(amount: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { rdxPool } = await import("../drizzle/schema");
+  const pool = await getRdxPoolStats();
+  const newUsdt = (parseFloat(pool.totalUsdtInPool) + parseFloat(amount)).toString();
+  
+  await updateRdxPool(pool.totalRdxInCirculation, pool.totalRdxBurned, newUsdt);
+}
+
+export async function removeUsdtFromPool(amount: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { rdxPool } = await import("../drizzle/schema");
+  const pool = await getRdxPoolStats();
+  const newUsdt = Math.max(0, parseFloat(pool.totalUsdtInPool) - parseFloat(amount)).toString();
+  
+  await updateRdxPool(pool.totalRdxInCirculation, pool.totalRdxBurned, newUsdt);
 }
 
 // Funções de Admin Actions

@@ -287,11 +287,16 @@ export const appRouter = router({
       if (ctx.user.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-
       const totalUsers = await db.getTotalUsers();
       const totalDeposited = await db.getTotalDeposited();
+      const rdxPool = await db.getRdxPoolStats();
 
-      return { totalUsers, totalDeposited };
+      return { 
+        totalUsers, 
+        totalDeposited,
+        totalRdxInCirculation: rdxPool.totalRdxInCirculation,
+        totalUsdtInPool: rdxPool.totalUsdtInPool
+      };
     }),
 
     getTransactions: protectedProcedure.query(async ({ ctx }) => {
@@ -337,6 +342,7 @@ export const appRouter = router({
         totalUsdtInCirculation: totalUsdt,
         totalRdxInCirculation: rdxPool.totalRdxInCirculation,
         totalRdxBurned: rdxPool.totalRdxBurned,
+        totalUsdtInPool: rdxPool.totalUsdtInPool,
         userCount,
       };
     }),
@@ -448,6 +454,34 @@ export const appRouter = router({
         const newUsdt = (currentUsdt + Number(input.amount)).toFixed(8);
         await db.updateUserBalance(input.userId, newUsdt);
         await db.logAdminAction("send_usdt", `Sent ${input.amount} USDT to user ${input.userId}`);
+        return { success: true };
+      }),
+
+    addUsdtToPool: protectedProcedure
+      .input(z.object({ password: z.string(), amount: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== ENV.adminPassword) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        await db.addUsdtToPool(input.amount);
+        await db.logAdminAction("add_usdt_to_pool", `Added ${input.amount} USDT to pool`);
+        return { success: true };
+      }),
+
+    removeUsdtFromPool: protectedProcedure
+      .input(z.object({ password: z.string(), amount: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== ENV.adminPassword) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        await db.removeUsdtFromPool(input.amount);
+        await db.logAdminAction("remove_usdt_from_pool", `Removed ${input.amount} USDT from pool`);
         return { success: true };
       }),
   }),

@@ -138,3 +138,9 @@
 - [x] Preco do RDX nao muda quando RDX e movimentado - CORRIGIDO: pool agora e atualizado em coleta e venda
 - [x] Adicionar funcionalidade de enviar USDT no painel admin - IMPLEMENTADO: funcao sendUsdtToUser adicionada
 - [x] Adicionar funcionalidade de enviar RDX para qualquer ID no painel admin - IMPLEMENTADO: botoes de envio adicionados
+
+## Gerenciamento de Liquidez do Pool (Fevereiro 2026)
+- [x] Adicionar campos de USDT no schema do pool
+- [x] Criar funcoes de adicionar e remover USDT do pool
+- [x] Mostrar liquidez do pool no painel admin
+- [x] Adicionar interface de gerenciamento de USDT no pool

@@ -149,6 +149,7 @@ export const rdxPool = mysqlTable("rdxPool", {
   id: int("id").autoincrement().primaryKey(),
   totalRdxInCirculation: decimal("totalRdxInCirculation", { precision: 20, scale: 8 }).default("0").notNull(),
   totalRdxBurned: decimal("totalRdxBurned", { precision: 20, scale: 8 }).default("0").notNull(),
+  totalUsdtInPool: decimal("totalUsdtInPool", { precision: 20, scale: 8 }).default("0").notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
