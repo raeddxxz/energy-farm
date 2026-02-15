@@ -223,16 +223,17 @@ export async function calculateRdxPrice(): Promise<string> {
   const db = await getDb();
   if (!db) return "0.001";
   
-  // Calcular preço baseado na oferta e demanda
-  // Preço = 0.001 * (1 / (1 + totalSupply / 1000000))
-  const totalSupplyResult = await db.select({ total: sum(userRdxBalance.rdxBalance) })
-    .from(userRdxBalance);
+  // Calcular preço baseado na oferta e demanda usando dados do pool
+  // Preço = 0.001 / (1 + (totalRdxInCirculation / 1000000))
+  // Quanto mais RDX em circulação, menor o preço (deflação)
+  // Quanto menos RDX em circulação, maior o preço (inflação)
   
-  const totalSupply = parseFloat(totalSupplyResult[0]?.total?.toString() || "0");
+  const pool = await getRdxPoolStats();
+  const totalRdxInCirculation = parseFloat(pool.totalRdxInCirculation);
   
-  // Fórmula: preço diminui conforme mais RDX em circulação
+  // Fórmula de preço dinâmico: preço diminui conforme mais RDX em circulação
   const basePrice = 0.001;
-  const price = basePrice / (1 + (totalSupply / 1000000));
+  const price = basePrice / (1 + (totalRdxInCirculation / 1000000));
   
   return price.toFixed(8);
 }
@@ -403,7 +404,7 @@ export async function setAdminSetting(key: string, value: string) {
 }
 
 // Funções de RDX Pool
-export async function getRdxPoolStats() {
+export async function getRdxPoolStats(): Promise<{ totalRdxInCirculation: string; totalRdxBurned: string }> {
   const db = await getDb();
   if (!db) return { totalRdxInCirculation: "0", totalRdxBurned: "0" };
   
