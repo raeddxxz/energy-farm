@@ -16,6 +16,7 @@ export default function Wallet() {
   const [convertFrom, setConvertFrom] = useState<"USDT" | "RDX">("USDT");
   const [generatedDepositAddr, setGeneratedDepositAddr] = useState<string | null>(null);
   const [copiedAddr, setCopiedAddr] = useState(false);
+  const [selectedCrypto, setSelectedCrypto] = useState<"TON" | "USDT_BEP20">("USDT_BEP20");
 
   const { data: balance, refetch: refetchBalance } = trpc.wallet.getBalance.useQuery();
   const { data: rdxBalance, refetch: refetchRdx } = trpc.rdx.getBalance.useQuery();
@@ -34,6 +35,7 @@ export default function Wallet() {
     try {
       const result = await depositMutation.mutateAsync({
         amount: depositAmount,
+        cryptoType: selectedCrypto,
       });
       setGeneratedDepositAddr(result.depositAddress);
       toast.success("Endereco gerado! Deposite USDT/TON para este endereco");
@@ -148,7 +150,18 @@ export default function Wallet() {
             {!generatedDepositAddr ? (
               <>
                 <div>
-                  <label className="block text-slate-300 text-sm mb-2">Quantidade USDT para Depositar</label>
+                  <label className="block text-slate-300 text-sm mb-2">Selecione a Criptomoeda</label>
+                  <select
+                    value={selectedCrypto}
+                    onChange={(e) => setSelectedCrypto(e.target.value as "TON" | "USDT_BEP20")}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="USDT_BEP20">USDT (BEP20)</option>
+                    <option value="TON">TON</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-300 text-sm mb-2">Quantidade para Depositar</label>
                   <input
                     type="number"
                     value={depositAmount}

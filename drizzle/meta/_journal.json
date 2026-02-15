@@ -36,6 +36,13 @@
       "when": 1771105881771,
       "tag": "0004_living_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1771118739363,
+      "tag": "0005_lazy_lenny_balinger",
+      "breakpoints": true
     }
   ]
 }

@@ -121,6 +121,7 @@ export const appRouter = router({
     deposit: protectedProcedure
       .input(z.object({
         amount: z.string(),
+        cryptoType: z.enum(["TON", "USDT_BEP20"]),
       }))
       .mutation(async ({ ctx, input }) => {
         const user = await db.getUserById(ctx.user.id);
@@ -133,13 +134,15 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: "Minimum deposit is 1 USDT" });
         }
 
-        const depositAddress = await db.generateDepositAddress(ctx.user.id);
+        const currency = input.cryptoType === 'USDT_BEP20' ? 'BEP20' : 'TON';
+        const depositAddress = await db.generateDepositAddress(ctx.user.id, currency);
 
         await db.createDepositRequest({
           userId: ctx.user.id,
           amount: input.amount,
           userAddress: "",
           depositAddress: depositAddress,
+          cryptoType: input.cryptoType,
           status: "pending",
         });
 

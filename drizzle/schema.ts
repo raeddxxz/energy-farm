@@ -71,7 +71,9 @@ export const depositRequests = mysqlTable("depositRequests", {
   amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
   userAddress: varchar("userAddress", { length: 255 }).notNull(),
   depositAddress: varchar("depositAddress", { length: 255 }).notNull(),
-  status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"]).default("pending").notNull(),
+  cryptoType: mysqlEnum("cryptoType", ["TON", "USDT_BEP20"]).notNull(),
+  transactionHash: varchar("transactionHash", { length: 255 }),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "expired", "confirmed"]).default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

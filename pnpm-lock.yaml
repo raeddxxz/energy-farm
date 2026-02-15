@@ -211,6 +211,9 @@ importers:
       ton:
         specifier: ^13.9.0
         version: 13.9.0(ton-core@0.53.0(ton-crypto@3.2.0))(ton-crypto@3.2.0)
+      ton-crypto:
+        specifier: ^3.2.0
+        version: 3.2.0
       tonweb:
         specifier: ^0.0.66
         version: 0.0.66(expo@54.0.33(@babel/core@7.28.4)(react-native@0.84.0(@babel/core@7.28.4)(@types/react@19.2.1)(react@19.2.1))(react@19.2.1))(react-native@0.84.0(@babel/core@7.28.4)(@types/react@19.2.1)(react@19.2.1))

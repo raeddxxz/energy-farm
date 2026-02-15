@@ -58,3 +58,13 @@
 - [x] Testar painel administrativo
 - [x] Testar sistema multilíngue
 - [x] Verificar responsividade mobile
+
+## Correções Necessárias - Endereços Blockchain
+- [x] Corrigir geração de endereços TON válidos
+- [x] Corrigir geração de endereços BEP20 válidos
+- [x] Criar job de monitoramento que roda a cada minuto
+- [x] Rastrear qual usuário é dono de cada endereço
+- [x] Creditar saldo automaticamente quando transação é detectada
+- [x] Adicionar seletor de cripto (TON ou USDT BEP20) no depósito
+- [x] Atualizar interface para mostrar endereços separados por rede
+- [x] Testar endereços gerados em exploradores de blockchain

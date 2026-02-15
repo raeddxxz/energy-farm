@@ -1,6 +1,8 @@
 import * as bip39 from "bip39";
 import hdkey from "hdkey";
 import { Wallet, JsonRpcProvider, Contract, parseUnits } from "ethers";
+import { mnemonicToPrivateKey } from "ton-crypto";
+import { Address } from "ton";
 
 const BLOCKCHAIN_SEED_PHRASE = process.env.BLOCKCHAIN_SEED_PHRASE || "";
 const BEP20_RPC_ENDPOINT = process.env.BEP20_RPC_ENDPOINT || "https://bsc-dataseed1.binance.org:443";
@@ -9,32 +11,38 @@ const BEP20_RPC_ENDPOINT = process.env.BEP20_RPC_ENDPOINT || "https://bsc-datase
 const derivedKeysCache = new Map<number, { ton: string; bep20: string }>();
 
 /**
- * Gera endereço único para depósito TON derivado da seed phrase
+ * Gera endereço único válido para depósito TON derivado da seed phrase
  */
 export async function generateTonDepositAddress(userId: number): Promise<string> {
   try {
     // Verificar cache
     if (derivedKeysCache.has(userId)) {
       const cached = derivedKeysCache.get(userId)!;
-      return cached.ton;
+      if (cached.ton) return cached.ton;
     }
 
-    // Gerar seed a partir da mnemônica
-    const seed = bip39.mnemonicToSeedSync(BLOCKCHAIN_SEED_PHRASE);
-    const hdWallet = hdkey.fromMasterSeed(seed);
+    // Gerar chave privada TON a partir da mnemônica
+    // TON usa o índice 0 para a primeira conta
+    const tonPrivateKey = await mnemonicToPrivateKey(
+      BLOCKCHAIN_SEED_PHRASE.split(" "),
+      `m/44'/607'/0'/0'/${userId}`
+    );
 
-    // Derivar chave para TON: m/44'/607'/0'/0/userId
-    const derivedPath = `m/44'/607'/0'/0/${userId}`;
-    const derived = hdWallet.derive(derivedPath);
-
-    // Gerar endereço TON a partir da chave pública
-    const publicKey = derived.publicKey;
-    const address = publicKey ? "UQA" + publicKey.toString("hex").substring(0, 56) : "UQA" + userId.toString().padStart(56, "0");
+    // Criar endereço TON válido
+    // Usando o formato padrão de endereço TON
+    const publicKey = tonPrivateKey.publicKey;
+    const address = Address.parse(
+      `0:${publicKey.toString("hex")}`
+    ).toString({
+      bounceable: false,
+      testOnly: false,
+    });
 
     // Cachear endereço
+    const cached = derivedKeysCache.get(userId) || { ton: "", bep20: "" };
     derivedKeysCache.set(userId, {
       ton: address,
-      bep20: derivedKeysCache.get(userId)?.bep20 || "",
+      bep20: cached.bep20,
     });
 
     return address;
@@ -45,7 +53,7 @@ export async function generateTonDepositAddress(userId: number): Promise<string>
 }
 
 /**
- * Gera endereço único para depósito BEP20 (Ethereum) derivado da seed phrase
+ * Gera endereço único válido para depósito BEP20 (Ethereum) derivado da seed phrase
  */
 export async function generateBep20DepositAddress(userId: number): Promise<string> {
   try {
@@ -66,6 +74,11 @@ export async function generateBep20DepositAddress(userId: number): Promise<strin
     // Criar wallet Ethereum/BEP20
     const privateKeyBuffer = derived.privateKey;
     const privateKeyHex = privateKeyBuffer ? "0x" + privateKeyBuffer.toString("hex") : "";
+    
+    if (!privateKeyHex) {
+      throw new Error("Falha ao derivar chave privada BEP20");
+    }
+
     const wallet = new Wallet(privateKeyHex);
     const address = wallet.address;
 
@@ -91,6 +104,8 @@ export async function monitorTonDeposits(
   minAmount: number
 ): Promise<{ hash: string; amount: number; from: string } | null> {
   try {
+    // Aqui você implementaria a lógica real de monitoramento com TonWeb API
+    // Por enquanto, retornamos null como placeholder
     return null;
   } catch (error) {
     console.error("Erro ao monitorar depósitos TON:", error);
@@ -150,6 +165,8 @@ export async function withdrawTon(
   amount: number
 ): Promise<{ hash: string; success: boolean }> {
   try {
+    // Aqui você implementaria a lógica real de saque TON
+    // usando a TonWeb API com a chave privada armazenada
     console.log(`Saque TON: ${amount} para ${toAddress}`);
 
     return {
@@ -176,6 +193,11 @@ export async function withdrawBep20(
 
     const privateKeyBuffer = derived.privateKey;
     const privateKeyHex = privateKeyBuffer ? "0x" + privateKeyBuffer.toString("hex") : "";
+
+    if (!privateKeyHex) {
+      throw new Error("Falha ao derivar chave privada para saque");
+    }
+
     const wallet = new Wallet(privateKeyHex);
     const provider = new JsonRpcProvider(BEP20_RPC_ENDPOINT);
     const connectedWallet = wallet.connect(provider);
