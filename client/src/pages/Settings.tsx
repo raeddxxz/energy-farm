@@ -23,6 +23,14 @@ export default function Settings() {
 
         <div className="space-y-4">
           <Card className="bg-slate-800 border-slate-700 p-6">
+            <h2 className="text-xl font-semibold text-white mb-4">User ID</h2>
+            <div className="bg-slate-900 p-4 rounded-lg">
+              <p className="text-slate-400 text-sm mb-2">Seu ID de usuário:</p>
+              <p className="text-lg font-mono text-cyan-400 break-all">{user?.id}</p>
+            </div>
+          </Card>
+
+          <Card className="bg-slate-800 border-slate-700 p-6">
             <h2 className="text-xl font-semibold text-white mb-4">{t("settings.language")}</h2>
             <div className="grid grid-cols-2 gap-2">
               {(Object.entries(LANGUAGES) as [Language, string][]).map(([lang, name]) => (

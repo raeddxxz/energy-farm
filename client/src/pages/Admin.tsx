@@ -175,44 +175,44 @@ export default function Admin() {
             <Button
               onClick={async () => {
                 try {
-                  await toggleDepositsMutation.mutateAsync({ password, enabled: true });
-                  toast.success("Depósitos toggled!");
-                } catch (error) {
-                  toast.error("Erro");
+                  await toggleDepositsMutation.mutateAsync({ password, enabled: false });
+                  toast.success("Depósitos desabilitados!");
+                } catch (error: any) {
+                  toast.error(error.message || "Erro");
                 }
               }}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleDepositsMutation.isPending}
             >
-              Toggle Deposits
+              Desabilitar Depósitos
             </Button>
             <Button
               onClick={async () => {
                 try {
-                  await toggleWithdrawsMutation.mutateAsync({ password, enabled: true });
-                  toast.success("Saques toggled!");
-                } catch (error) {
-                  toast.error("Erro");
+                  await toggleWithdrawsMutation.mutateAsync({ password, enabled: false });
+                  toast.success("Saques desabilitados!");
+                } catch (error: any) {
+                  toast.error(error.message || "Erro");
                 }
               }}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleWithdrawsMutation.isPending}
             >
-              Toggle Withdraws
+              Desabilitar Saques
             </Button>
             <Button
               onClick={async () => {
                 try {
-                  await toggleConversionsMutation.mutateAsync({ password, enabled: true });
-                  toast.success("Conversões toggled!");
-                } catch (error) {
-                  toast.error("Erro");
+                  await toggleConversionsMutation.mutateAsync({ password, enabled: false });
+                  toast.success("Conversões desabilitadas!");
+                } catch (error: any) {
+                  toast.error(error.message || "Erro");
                 }
               }}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleConversionsMutation.isPending}
             >
-              Toggle Conversions
+              Desabilitar Conversões
             </Button>
           </div>
         )}

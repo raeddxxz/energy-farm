@@ -126,3 +126,8 @@
 - [x] Saldo RDX aumentando do nada - CORRIGIDO: frontend envia valor exato do ganho em tempo real
 - [x] Coletar RDX nao creditava corretamente - CORRIGIDO: agora credita exatamente o valor do ganho em tempo real
 - [x] Venda de itens nao adicionava ao saldo RDX - CORRIGIDO: agora adiciona 50% do preco de compra em RDX
+
+## Bugs do Painel Administrativo (Fevereiro 2026)
+- [x] Erro ao clicar nos botoes de desabilitar deposito/saque/conversao - CORRIGIDO: agora envia enabled: false
+- [x] User ID nao e visivel nas configuracoes do usuario - CORRIGIDO: adicionado na pagina Settings
+- [x] Preco do RDX nao esta se mexendo, fica fixo em $0.001 - CORRIGIDO: tabela rdxPool foi criada e inicializada
