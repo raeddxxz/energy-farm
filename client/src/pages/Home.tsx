@@ -18,14 +18,15 @@ export default function Home() {
   const { data: items, isLoading, refetch: refetchItems } = trpc.generators.getUserItems.useQuery();
   const collectMutation = trpc.generators.collectRewards.useMutation();
   const sellMutation = trpc.generators.sellItem.useMutation();
-  const { refetch: refetchBalance } = trpc.wallet.getBalance.useQuery();
+
   const { refetch: refetchRdx } = trpc.rdx.getBalance.useQuery();
 
   useEffect(() => {
     if (items) {
       const total = items.reduce((sum, item) => {
-        const dailyProfit = parseFloat(item.dailyProfit);
-        return sum + dailyProfit;
+        // Converter de USDT para RDX: multiplicar por 1000
+        const dailyProfitRdx = parseFloat(item.dailyProfit) * 1000;
+        return sum + dailyProfitRdx;
       }, 0);
       setTotalDailyProfit(total);
     }
@@ -106,7 +107,7 @@ export default function Home() {
             <p className="text-slate-400 text-sm mb-2">{t("principal.totalDaily")}</p>
             <div className="flex items-baseline justify-center gap-2">
               <span className="text-4xl font-bold text-purple-400">
-                {totalDailyProfit.toFixed(4)}
+                {totalDailyProfit.toFixed(2)}
               </span>
               <span className="text-slate-400">RDX / dia</span>
             </div>
@@ -135,12 +136,12 @@ export default function Home() {
                   <div>
                     <h3 className="text-lg font-semibold text-white">{item.itemType}</h3>
                     <p className="text-slate-400 text-sm">
-                      {t("principal.purchasePrice")}: {item.purchasePrice}
+                      {t("principal.purchasePrice")}: {(parseFloat(item.purchasePrice) * 1000).toFixed(0)} RDX
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-green-400 font-semibold">
-                      +{parseFloat(item.dailyProfit).toFixed(4)}/dia
+                      +{(parseFloat(item.dailyProfit) * 1000).toFixed(2)}/dia
                     </p>
                     <p className="text-slate-400 text-sm">
                       {t("principal.timeRemaining")}: {getTimeRemaining(item.expiresAt)}
@@ -150,8 +151,9 @@ export default function Home() {
                 <div className="flex gap-2 mt-3">
                   <Button
                     onClick={() => {
-                      const sellPrice = (parseFloat(item.purchasePrice) * 0.5).toFixed(8);
-                      setSellConfirm({ itemId: item.id, itemType: item.itemType, price: sellPrice });
+                      // Converter preço de venda de USDT para RDX: (purchasePrice * 0.5) * 1000
+                      const sellPriceRdx = (parseFloat(item.purchasePrice) * 0.5 * 1000).toFixed(0);
+                      setSellConfirm({ itemId: item.id, itemType: item.itemType, price: sellPriceRdx });
                     }}
                     disabled={sellMutation.isPending}
                     variant="outline"
@@ -184,7 +186,7 @@ export default function Home() {
             </DialogTitle>
           </DialogHeader>
           <div className="text-slate-300">
-            <p>Você quer vender o item <span className="font-semibold">{sellConfirm?.itemType}</span> por <span className="font-semibold text-green-400">{sellConfirm?.price} USDT</span>?</p>
+            <p>Você quer vender o item <span className="font-semibold">{sellConfirm?.itemType}</span> por <span className="font-semibold text-green-400">{sellConfirm?.price} RDX</span>?</p>
           </div>
           <DialogFooter>
             <Button
@@ -199,10 +201,10 @@ export default function Home() {
                 if (!sellConfirm) return;
                 try {
                   await sellMutation.mutateAsync({ itemId: sellConfirm.itemId });
-                  toast.success(`Vendido por ${sellConfirm.price} USDT`);
+                  toast.success(`Vendido por ${sellConfirm.price} RDX`);
                   setSellConfirm(null);
                   refetchItems();
-                  refetchBalance();
+                  refetchRdx();
                 } catch (error: any) {
                   toast.error(error.message || "Erro");
                 }

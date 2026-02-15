@@ -109,3 +109,9 @@
 - [x] Adicionar traduções para modal em todos os 7 idiomas
 - [x] Testar funcionamento do modal
 - [x] Verificar se todos os testes passam
+
+## Correções de Cálculos (Fevereiro 2026)
+- [x] Corrigir cálculos de ganhos: converter USDT para RDX multiplicando por 1000
+- [x] Corrigir preço de venda para mostrar em RDX (50% do preço de compra em RDX)
+- [x] Garantir que ganho em tempo real está acumulando corretamente
+- [x] Todos os 8 testes passando após correções
