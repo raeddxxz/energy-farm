@@ -1,72 +1,50 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function Home() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [totalDailyProfit, setTotalDailyProfit] = useState(0);
   const [accumulatedProfit, setAccumulatedProfit] = useState(0);
-  const [sellConfirm, setSellConfirm] = useState<{ itemId: number; itemType: string; price: string } | null>(null);
 
   const { data: items, isLoading, refetch: refetchItems } = trpc.generators.getUserItems.useQuery();
   const collectMutation = trpc.generators.collectRewards.useMutation();
   const sellMutation = trpc.generators.sellItem.useMutation();
-
+  const { refetch: refetchBalance } = trpc.wallet.getBalance.useQuery();
   const { refetch: refetchRdx } = trpc.rdx.getBalance.useQuery();
 
   useEffect(() => {
     if (items) {
       const total = items.reduce((sum, item) => {
-        // Converter de USDT para RDX: multiplicar por 1000
-        const dailyProfitRdx = parseFloat(item.dailyProfit) * 1000;
-        return sum + dailyProfitRdx;
+        const dailyProfit = parseFloat(item.dailyProfit);
+        return sum + dailyProfit;
       }, 0);
       setTotalDailyProfit(total);
     }
   }, [items]);
 
   useEffect(() => {
-    // Carregar ganhos salvos do localStorage (persiste entre sessões)
-    const savedProfit = localStorage.getItem(`accumulated_profit_${user?.id}`);
-    const lastUpdateTime = localStorage.getItem(`last_update_time_${user?.id}`);
-    
-    if (savedProfit && lastUpdateTime) {
-      const profit = parseFloat(savedProfit);
-      const lastTime = parseInt(lastUpdateTime);
-      const now = Date.now();
-      const timePassedMinutes = (now - lastTime) / (1000 * 60);
-      
-      // Se passou tempo desde a última atualização, calcular ganhos acumulados
-      if (timePassedMinutes > 0 && items && items.length > 0) {
-        const dailyProfit = items.reduce((sum, item) => {
-          return sum + parseFloat(item.dailyProfit) * 1000;
-        }, 0);
-        const accumulatedWhileAway = (dailyProfit / 1440) * timePassedMinutes;
-        const newProfit = profit + accumulatedWhileAway;
-        setAccumulatedProfit(newProfit);
-        localStorage.setItem(`accumulated_profit_${user?.id}`, newProfit.toString());
-      } else {
-        setAccumulatedProfit(profit);
-      }
+    // Carregar ganhos salvos do sessionStorage (persiste durante a sessão)
+    const savedProfit = sessionStorage.getItem(`accumulated_profit_${user?.id}`);
+    if (savedProfit) {
+      setAccumulatedProfit(parseFloat(savedProfit));
     }
-  }, [user?.id, items]);
+  }, [user?.id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setAccumulatedProfit((prev) => {
         const secondlyProfit = totalDailyProfit / 86400;
         const newProfit = prev + secondlyProfit;
-        // Salvar ganhos a cada segundo no localStorage
+        // Salvar ganhos a cada segundo no sessionStorage
         if (user?.id) {
-          localStorage.setItem(`accumulated_profit_${user.id}`, newProfit.toString());
-          localStorage.setItem(`last_update_time_${user?.id}`, Date.now().toString());
+          sessionStorage.setItem(`accumulated_profit_${user.id}`, newProfit.toString());
         }
         return newProfit;
       });
@@ -77,12 +55,11 @@ export default function Home() {
 
   const handleCollect = async () => {
     try {
-      const result = await collectMutation.mutateAsync({ rdxAmount: accumulatedProfit });
+      const result = await collectMutation.mutateAsync();
       toast.success(`Coletado ${result.rdxCollected} RDX!`);
       // Limpar ganhos acumulados após coletar
       if (user?.id) {
-        localStorage.removeItem(`accumulated_profit_${user.id}`);
-        localStorage.removeItem(`last_update_time_${user?.id}`);
+        sessionStorage.removeItem(`accumulated_profit_${user.id}`);
       }
       setAccumulatedProfit(0);
       refetchRdx();
@@ -126,13 +103,13 @@ export default function Home() {
           <div className="text-center">
             <p className="text-slate-400 text-sm mb-2">{t("principal.totalDaily")}</p>
             <div className="flex items-baseline justify-center gap-2">
-              <span className="text-4xl font-bold text-purple-400">
-                {totalDailyProfit.toFixed(2)}
+              <span className="text-4xl font-bold text-green-400">
+                {totalDailyProfit.toFixed(4)}
               </span>
-              <span className="text-slate-400">RDX / dia</span>
+              <span className="text-slate-400">/ dia</span>
             </div>
             <p className="text-slate-500 text-sm mt-2">
-              Ganho em tempo real: +{accumulatedProfit.toFixed(6)} RDX
+              Ganho em tempo real: +{accumulatedProfit.toFixed(6)}
             </p>
             <Button
               onClick={handleCollect}
@@ -156,12 +133,12 @@ export default function Home() {
                   <div>
                     <h3 className="text-lg font-semibold text-white">{item.itemType}</h3>
                     <p className="text-slate-400 text-sm">
-                      {t("principal.purchasePrice")}: {(parseFloat(item.purchasePrice) * 1000).toFixed(0)} RDX
+                      {t("principal.purchasePrice")}: {item.purchasePrice}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-green-400 font-semibold">
-                      +{(parseFloat(item.dailyProfit) * 1000).toFixed(2)}/dia
+                      +{parseFloat(item.dailyProfit).toFixed(4)}/dia
                     </p>
                     <p className="text-slate-400 text-sm">
                       {t("principal.timeRemaining")}: {getTimeRemaining(item.expiresAt)}
@@ -170,10 +147,16 @@ export default function Home() {
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Button
-                    onClick={() => {
-                      // Converter preço de venda de USDT para RDX: (purchasePrice * 0.5) * 1000
-                      const sellPriceRdx = (parseFloat(item.purchasePrice) * 0.5 * 1000).toFixed(0);
-                      setSellConfirm({ itemId: item.id, itemType: item.itemType, price: sellPriceRdx });
+                    onClick={async () => {
+                      const sellPrice = (parseFloat(item.purchasePrice) * 0.5).toFixed(8);
+                      try {
+                        await sellMutation.mutateAsync({ itemId: item.id });
+                        toast.success(`Vendido por ${sellPrice} USDT`);
+                        refetchItems();
+                        refetchBalance();
+                      } catch (error: any) {
+                        toast.error(error.message || "Erro");
+                      }
                     }}
                     disabled={sellMutation.isPending}
                     variant="outline"
@@ -181,6 +164,9 @@ export default function Home() {
                   >
                     {sellMutation.isPending ? <Loader2 className="animate-spin" size={12} /> : "Vender"}
                   </Button>
+                  <div className="flex-1 bg-slate-700 rounded px-2 py-1 text-xs text-slate-300 text-center">
+                    Receber: {(parseFloat(item.purchasePrice) * 0.5).toFixed(8)} USDT
+                  </div>
                 </div>
               </Card>
             ))}
@@ -197,46 +183,6 @@ export default function Home() {
           </Card>
         )}
       </div>
-
-      <Dialog open={!!sellConfirm} onOpenChange={() => setSellConfirm(null)}>
-        <DialogContent className="bg-slate-800 border-slate-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              Confirmar Venda
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-slate-300">
-            <p>Você quer vender o item <span className="font-semibold">{sellConfirm?.itemType}</span> por <span className="font-semibold text-green-400">{sellConfirm?.price} RDX</span>?</p>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => setSellConfirm(null)}
-              variant="outline"
-              className="bg-slate-700 hover:bg-slate-600 text-white"
-            >
-              Não
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!sellConfirm) return;
-                try {
-                  await sellMutation.mutateAsync({ itemId: sellConfirm.itemId });
-                  toast.success(`Vendido por ${sellConfirm.price} RDX`);
-                  setSellConfirm(null);
-                  refetchItems();
-                  refetchRdx();
-                } catch (error: any) {
-                  toast.error(error.message || "Erro");
-                }
-              }}
-              disabled={sellMutation.isPending}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {sellMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : "Sim"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

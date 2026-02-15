@@ -1,1 +1,0 @@
-ALTER TABLE `rdxPool` ADD `totalUsdtInPool` decimal(20,8) DEFAULT '0' NOT NULL;

@@ -15,23 +15,19 @@ export default function Admin() {
   const [, navigate] = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<"stats" | "settings" | "rdx" | "send" | "liquidity">("stats");
+  const [activeTab, setActiveTab] = useState<"stats" | "settings" | "rdx" | "send">("stats");
   const [rdxAmount, setRdxAmount] = useState("");
   const [userId, setUserId] = useState("");
   const [sendAmount, setSendAmount] = useState("");
-  const [usdtPoolAmount, setUsdtPoolAmount] = useState("");
 
   const { data: stats } = trpc.admin.getStats.useQuery();
   const verifyPasswordMutation = trpc.admin.verifyPassword.useMutation();
   const burnRdxMutation = trpc.admin.burnRdx.useMutation();
-  const addRdxMutation = trpc.admin.addRdxToPool.useMutation();
-  const sendRdxMutation = trpc.admin.sendRdxToUser.useMutation();
-  const sendUsdtMutation = trpc.admin.sendUsdtToUser.useMutation();
+  const addRdxMutation = trpc.admin.addRdx.useMutation();
+  const sendRdxMutation = trpc.admin.sendRdx.useMutation();
   const toggleDepositsMutation = trpc.admin.toggleDeposits.useMutation();
   const toggleWithdrawsMutation = trpc.admin.toggleWithdraws.useMutation();
   const toggleConversionsMutation = trpc.admin.toggleConversions.useMutation();
-  const addUsdtToPoolMutation = trpc.admin.addUsdtToPool.useMutation();
-  const removeUsdtFromPoolMutation = trpc.admin.removeUsdtFromPool.useMutation();
 
   useEffect(() => {
     if (user?.role !== "admin") {
@@ -100,55 +96,8 @@ export default function Admin() {
         setSendAmount("");
         toast.success("RDX enviado!");
       }
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao enviar RDX");
-    }
-  };
-
-  const handleSendUsdt = async () => {
-    try {
-      const result = await sendUsdtMutation.mutateAsync({
-        password,
-        userId: parseInt(userId),
-        amount: sendAmount,
-      });
-      if (result.success) {
-        setUserId("");
-        setSendAmount("");
-        toast.success("USDT enviado!");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao enviar USDT");
-    }
-  };
-
-  const handleAddUsdtToPool = async () => {
-    try {
-      const result = await addUsdtToPoolMutation.mutateAsync({
-        password,
-        amount: usdtPoolAmount,
-      });
-      if (result.success) {
-        setUsdtPoolAmount("");
-        toast.success("USDT adicionado ao pool!");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao adicionar USDT ao pool");
-    }
-  };
-
-  const handleRemoveUsdtFromPool = async () => {
-    try {
-      const result = await removeUsdtFromPoolMutation.mutateAsync({
-        password,
-        amount: usdtPoolAmount,
-      });
-      if (result.success) {
-        setUsdtPoolAmount("");
-        toast.success("USDT removido do pool!");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao remover USDT do pool");
+    } catch (error) {
+      toast.error("Erro ao enviar RDX");
     }
   };
 
@@ -187,7 +136,7 @@ export default function Admin() {
         <h1 className="text-3xl font-bold text-white mb-6">Admin</h1>
 
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {["stats", "settings", "rdx", "send", "liquidity"].map((tab) => (
+          {["stats", "settings", "rdx", "send"].map((tab) => (
             <Button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -201,7 +150,6 @@ export default function Admin() {
               {tab === "settings" && "Settings"}
               {tab === "rdx" && "RDX"}
               {tab === "send" && "Send"}
-              {tab === "liquidity" && "Liquidez"}
             </Button>
           ))}
         </div>
@@ -225,46 +173,25 @@ export default function Admin() {
         {activeTab === "settings" && (
           <div className="space-y-4">
             <Button
-              onClick={async () => {
-                try {
-                  await toggleDepositsMutation.mutateAsync({ password, enabled: false });
-                  toast.success("Depósitos desabilitados!");
-                } catch (error: any) {
-                  toast.error(error.message || "Erro");
-                }
-              }}
+              onClick={() => toggleDepositsMutation.mutateAsync({ password })}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleDepositsMutation.isPending}
             >
-              Desabilitar Depósitos
+              Toggle Deposits
             </Button>
             <Button
-              onClick={async () => {
-                try {
-                  await toggleWithdrawsMutation.mutateAsync({ password, enabled: false });
-                  toast.success("Saques desabilitados!");
-                } catch (error: any) {
-                  toast.error(error.message || "Erro");
-                }
-              }}
+              onClick={() => toggleWithdrawsMutation.mutateAsync({ password })}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleWithdrawsMutation.isPending}
             >
-              Desabilitar Saques
+              Toggle Withdraws
             </Button>
             <Button
-              onClick={async () => {
-                try {
-                  await toggleConversionsMutation.mutateAsync({ password, enabled: false });
-                  toast.success("Conversões desabilitadas!");
-                } catch (error: any) {
-                  toast.error(error.message || "Erro");
-                }
-              }}
+              onClick={() => toggleConversionsMutation.mutateAsync({ password })}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleConversionsMutation.isPending}
             >
-              Desabilitar Conversões
+              Toggle Conversions
             </Button>
           </div>
         )}
@@ -314,108 +241,32 @@ export default function Admin() {
         )}
 
         {activeTab === "send" && (
-          <div className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Send RDX</h3>
-              <div className="space-y-3">
-                <Input
-                  type="number"
-                  placeholder="User ID"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
-                <Input
-                  type="number"
-                  placeholder="Amount"
-                  value={sendAmount}
-                  onChange={(e) => setSendAmount(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
-                <Button
-                  onClick={handleSendRdx}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  disabled={sendRdxMutation.isPending}
-                >
-                  Send RDX
-                </Button>
-              </div>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Send USDT</h3>
-              <div className="space-y-3">
-                <Input
-                  type="number"
-                  placeholder="User ID"
-                  value={userId}
-                  onChange={(e) => setUserId(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
-                <Input
-                  type="number"
-                  placeholder="Amount"
-                  value={sendAmount}
-                  onChange={(e) => setSendAmount(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
-                <Button
-                  onClick={handleSendUsdt}
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  disabled={sendUsdtMutation.isPending}
-                >
-                  Send USDT
-                </Button>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "liquidity" && (
-          <div className="space-y-4">
-            <Card className="bg-slate-800 border-slate-700 p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Liquidez do Pool</h2>
-              <div className="space-y-4">
-                <div className="bg-slate-900 p-4 rounded">
-                  <p className="text-slate-400 text-sm">RDX em Circulação</p>
-                  <p className="text-2xl font-bold text-purple-400">{stats?.totalRdxInCirculation || "0"} RDX</p>
-                </div>
-                <div className="bg-slate-900 p-4 rounded">
-                  <p className="text-slate-400 text-sm">USDT no Pool</p>
-                  <p className="text-2xl font-bold text-cyan-400">{stats?.totalUsdtInPool || "0"} USDT</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-slate-800 border-slate-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Gerenciar USDT do Pool</h3>
-              <div className="space-y-3">
-                <Input
-                  type="number"
-                  placeholder="Quantidade de USDT"
-                  value={usdtPoolAmount}
-                  onChange={(e) => setUsdtPoolAmount(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleAddUsdtToPool}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                    disabled={addUsdtToPoolMutation.isPending}
-                  >
-                    Adicionar
-                  </Button>
-                  <Button
-                    onClick={handleRemoveUsdtFromPool}
-                    className="flex-1 bg-red-600 hover:bg-red-700"
-                    disabled={removeUsdtFromPoolMutation.isPending}
-                  >
-                    Remover
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
+          <Card className="bg-slate-800 border-slate-700 p-6">
+            <h3 className="text-lg font-bold text-white mb-4">Send RDX</h3>
+            <div className="space-y-3">
+              <Input
+                type="number"
+                placeholder="User ID"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+              <Input
+                type="number"
+                placeholder="Amount"
+                value={sendAmount}
+                onChange={(e) => setSendAmount(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+              <Button
+                onClick={handleSendRdx}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={sendRdxMutation.isPending}
+              >
+                Send
+              </Button>
+            </div>
+          </Card>
         )}
       </div>
     </div>

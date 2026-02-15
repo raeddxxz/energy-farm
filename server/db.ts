@@ -223,17 +223,16 @@ export async function calculateRdxPrice(): Promise<string> {
   const db = await getDb();
   if (!db) return "0.001";
   
-  // Calcular preço baseado na oferta e demanda usando dados do pool
-  // Preço = 0.001 / (1 + (totalRdxInCirculation / 1000000))
-  // Quanto mais RDX em circulação, menor o preço (deflação)
-  // Quanto menos RDX em circulação, maior o preço (inflação)
+  // Calcular preço baseado na oferta e demanda
+  // Preço = 0.001 * (1 / (1 + totalSupply / 1000000))
+  const totalSupplyResult = await db.select({ total: sum(userRdxBalance.rdxBalance) })
+    .from(userRdxBalance);
   
-  const pool = await getRdxPoolStats();
-  const totalRdxInCirculation = parseFloat(pool.totalRdxInCirculation);
+  const totalSupply = parseFloat(totalSupplyResult[0]?.total?.toString() || "0");
   
-  // Fórmula de preço dinâmico: preço diminui conforme mais RDX em circulação
+  // Fórmula: preço diminui conforme mais RDX em circulação
   const basePrice = 0.001;
-  const price = basePrice / (1 + (totalRdxInCirculation / 1000000));
+  const price = basePrice / (1 + (totalSupply / 1000000));
   
   return price.toFixed(8);
 }
@@ -404,17 +403,17 @@ export async function setAdminSetting(key: string, value: string) {
 }
 
 // Funções de RDX Pool
-export async function getRdxPoolStats(): Promise<{ totalRdxInCirculation: string; totalRdxBurned: string; totalUsdtInPool: string }> {
+export async function getRdxPoolStats() {
   const db = await getDb();
-  if (!db) return { totalRdxInCirculation: "0", totalRdxBurned: "0", totalUsdtInPool: "0" };
+  if (!db) return { totalRdxInCirculation: "0", totalRdxBurned: "0" };
   
   const { rdxPool } = await import("../drizzle/schema");
   const result = await db.select().from(rdxPool).limit(1);
   
-  return result[0] || { totalRdxInCirculation: "0", totalRdxBurned: "0", totalUsdtInPool: "0" };
+  return result[0] || { totalRdxInCirculation: "0", totalRdxBurned: "0" };
 }
 
-export async function updateRdxPool(inCirculation: string, burned: string, usdtInPool?: string) {
+export async function updateRdxPool(inCirculation: string, burned: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
@@ -426,39 +425,15 @@ export async function updateRdxPool(inCirculation: string, burned: string, usdtI
     await db.update(rdxPool)
       .set({ 
         totalRdxInCirculation: inCirculation,
-        totalRdxBurned: burned,
-        ...(usdtInPool && { totalUsdtInPool: usdtInPool })
+        totalRdxBurned: burned
       })
       .where(eq(rdxPool.id, existing[0].id));
   } else {
     await db.insert(rdxPool).values({
       totalRdxInCirculation: inCirculation,
       totalRdxBurned: burned,
-      totalUsdtInPool: usdtInPool || "0",
     });
   }
-}
-
-export async function addUsdtToPool(amount: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const { rdxPool } = await import("../drizzle/schema");
-  const pool = await getRdxPoolStats();
-  const newUsdt = (parseFloat(pool.totalUsdtInPool) + parseFloat(amount)).toString();
-  
-  await updateRdxPool(pool.totalRdxInCirculation, pool.totalRdxBurned, newUsdt);
-}
-
-export async function removeUsdtFromPool(amount: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  const { rdxPool } = await import("../drizzle/schema");
-  const pool = await getRdxPoolStats();
-  const newUsdt = Math.max(0, parseFloat(pool.totalUsdtInPool) - parseFloat(amount)).toString();
-  
-  await updateRdxPool(pool.totalRdxInCirculation, pool.totalRdxBurned, newUsdt);
 }
 
 // Funções de Admin Actions
