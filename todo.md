@@ -144,3 +144,8 @@
 - [x] Criar funcoes de adicionar e remover USDT do pool
 - [x] Mostrar liquidez do pool no painel admin
 - [x] Adicionar interface de gerenciamento de USDT no pool
+
+## Correção de Erro 404 em Produção (Fevereiro 2026)
+- [x] Corrigir lógica de porta dinâmica em produção
+- [x] Garantir que servidor sempre usa porta 3000 em produção
+- [x] Verificar fallback do SPA (já estava correto)

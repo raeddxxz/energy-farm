@@ -52,15 +52,23 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
-
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  
+  // Em produção, sempre usar a porta preferida (não tentar portas alternativas)
+  // Isso garante que a infraestrutura publicada consiga rotear corretamente
+  if (process.env.NODE_ENV === "production") {
+    server.listen(preferredPort, () => {
+      console.log(`Server running on http://localhost:${preferredPort}/`);
+    });
+  } else {
+    // Em desenvolvimento, tentar portas alternativas se a preferida estiver ocupada
+    const port = await findAvailablePort(preferredPort);
+    if (port !== preferredPort) {
+      console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    }
+    server.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}/`);
+    });
   }
-
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
-  });
 
   // Iniciar jobs de background
   startDepositMonitoring();
