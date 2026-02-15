@@ -1,0 +1,1 @@
+ALTER TABLE `rdxPool` DROP COLUMN `totalUsdtInPool`;
