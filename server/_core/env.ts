@@ -10,4 +10,5 @@ export const ENV = {
   blockchainSeedPhrase: process.env.BLOCKCHAIN_SEED_PHRASE ?? "",
   tonEndpoint: process.env.TON_ENDPOINT ?? "",
   bep20RpcEndpoint: process.env.BEP20_RPC_ENDPOINT ?? "",
+  adminPassword: process.env.ADMIN_PASSWORD ?? "Rdx151208$71890@",
 };

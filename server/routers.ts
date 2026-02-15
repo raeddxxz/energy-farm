@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as db from "./db";
 import { GENERATORS } from "@shared/generators";
 import { TRPCError } from "@trpc/server";
+import { ENV } from "./_core/env";
 
 export const appRouter = router({
   system: systemRouter,
@@ -74,6 +75,11 @@ export const appRouter = router({
         const newRdxBalance = (currentRdx + rdxToCollect).toFixed(8);
         await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
 
+        // Atualizar pool de RDX (aumentar RDX em circulação)
+        const pool = await db.getRdxPoolStats();
+        const newCirculation = (parseFloat(pool.totalRdxInCirculation) + rdxToCollect).toString();
+        await db.updateRdxPool(newCirculation, pool.totalRdxBurned);
+
         return { success: true, rdxCollected: rdxToCollect.toFixed(8), newRdxBalance };
       }),
 
@@ -99,6 +105,11 @@ export const appRouter = router({
         
         // Remover o item
         await db.deleteUserItem(input.itemId);
+
+        // Atualizar pool de RDX (aumentar RDX em circulação)
+        const pool = await db.getRdxPoolStats();
+        const newCirculation = (parseFloat(pool.totalRdxInCirculation) + sellPriceRdx).toString();
+        await db.updateRdxPool(newCirculation, pool.totalRdxBurned);
 
         return { success: true, sellPrice: sellPriceRdx.toFixed(8), newBalance: newRdxBalance };
       }),
@@ -304,7 +315,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        const isValid = input.password === "Rdx151208$71890@";
+        const isValid = input.password === ENV.adminPassword;
         return { valid: isValid };
       }),
 
@@ -336,7 +347,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        if (input.password !== "Rdx151208$71890@") {
+        if (input.password !== ENV.adminPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
         }
         await db.setAdminSetting("depositsDisabled", input.enabled ? "false" : "true");
@@ -350,7 +361,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        if (input.password !== "Rdx151208$71890@") {
+        if (input.password !== ENV.adminPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
         }
         await db.setAdminSetting("withdrawsDisabled", input.enabled ? "false" : "true");
@@ -364,7 +375,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        if (input.password !== "Rdx151208$71890@") {
+        if (input.password !== ENV.adminPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
         }
         await db.setAdminSetting("conversionsDisabled", input.enabled ? "false" : "true");
@@ -378,7 +389,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        if (input.password !== "Rdx151208$71890@") {
+        if (input.password !== ENV.adminPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
         }
         const pool = await db.getRdxPoolStats();
@@ -394,7 +405,7 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        if (input.password !== "Rdx151208$71890@") {
+        if (input.password !== ENV.adminPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
         }
         const pool = await db.getRdxPoolStats();
@@ -410,13 +421,33 @@ export const appRouter = router({
         if (ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
         }
-        if (input.password !== "Rdx151208$71890@") {
+        if (input.password !== ENV.adminPassword) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
         }
         const currentRdx = parseFloat(await db.getUserRdxBalance(input.userId));
         const newRdx = (currentRdx + Number(input.amount)).toFixed(8);
         await db.updateUserRdxBalance(input.userId, newRdx);
         await db.logAdminAction("send_rdx", `Sent ${input.amount} RDX to user ${input.userId}`);
+        return { success: true };
+      }),
+
+    sendUsdtToUser: protectedProcedure
+      .input(z.object({ password: z.string(), userId: z.number(), amount: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== ENV.adminPassword) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        const user = await db.getUserById(input.userId);
+        if (!user) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+        const currentUsdt = parseFloat(user.balance);
+        const newUsdt = (currentUsdt + Number(input.amount)).toFixed(8);
+        await db.updateUserBalance(input.userId, newUsdt);
+        await db.logAdminAction("send_usdt", `Sent ${input.amount} USDT to user ${input.userId}`);
         return { success: true };
       }),
   }),

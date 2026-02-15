@@ -25,6 +25,7 @@ export default function Admin() {
   const burnRdxMutation = trpc.admin.burnRdx.useMutation();
   const addRdxMutation = trpc.admin.addRdxToPool.useMutation();
   const sendRdxMutation = trpc.admin.sendRdxToUser.useMutation();
+  const sendUsdtMutation = trpc.admin.sendUsdtToUser.useMutation();
   const toggleDepositsMutation = trpc.admin.toggleDeposits.useMutation();
   const toggleWithdrawsMutation = trpc.admin.toggleWithdraws.useMutation();
   const toggleConversionsMutation = trpc.admin.toggleConversions.useMutation();
@@ -96,8 +97,25 @@ export default function Admin() {
         setSendAmount("");
         toast.success("RDX enviado!");
       }
-    } catch (error) {
-      toast.error("Erro ao enviar RDX");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao enviar RDX");
+    }
+  };
+
+  const handleSendUsdt = async () => {
+    try {
+      const result = await sendUsdtMutation.mutateAsync({
+        password,
+        userId: parseInt(userId),
+        amount: sendAmount,
+      });
+      if (result.success) {
+        setUserId("");
+        setSendAmount("");
+        toast.success("USDT enviado!");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao enviar USDT");
     }
   };
 
@@ -262,32 +280,61 @@ export default function Admin() {
         )}
 
         {activeTab === "send" && (
-          <Card className="bg-slate-800 border-slate-700 p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Send RDX</h3>
-            <div className="space-y-3">
-              <Input
-                type="number"
-                placeholder="User ID"
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-              <Input
-                type="number"
-                placeholder="Amount"
-                value={sendAmount}
-                onChange={(e) => setSendAmount(e.target.value)}
-                className="bg-slate-700 border-slate-600 text-white"
-              />
-              <Button
-                onClick={handleSendRdx}
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={sendRdxMutation.isPending}
-              >
-                Send
-              </Button>
-            </div>
-          </Card>
+          <div className="space-y-4">
+            <Card className="bg-slate-800 border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Send RDX</h3>
+              <div className="space-y-3">
+                <Input
+                  type="number"
+                  placeholder="User ID"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={sendAmount}
+                  onChange={(e) => setSendAmount(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+                <Button
+                  onClick={handleSendRdx}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={sendRdxMutation.isPending}
+                >
+                  Send RDX
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="bg-slate-800 border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-white mb-4">Send USDT</h3>
+              <div className="space-y-3">
+                <Input
+                  type="number"
+                  placeholder="User ID"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={sendAmount}
+                  onChange={(e) => setSendAmount(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white"
+                />
+                <Button
+                  onClick={handleSendUsdt}
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  disabled={sendUsdtMutation.isPending}
+                >
+                  Send USDT
+                </Button>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </div>

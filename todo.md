@@ -131,3 +131,10 @@
 - [x] Erro ao clicar nos botoes de desabilitar deposito/saque/conversao - CORRIGIDO: agora envia enabled: false
 - [x] User ID nao e visivel nas configuracoes do usuario - CORRIGIDO: adicionado na pagina Settings
 - [x] Preco do RDX nao esta se mexendo, fica fixo em $0.001 - CORRIGIDO: tabela rdxPool foi criada e inicializada
+
+## Novos Bugs Encontrados e Corrigidos (Fevereiro 2026)
+- [x] Erro "Invalid Password" ao clicar nos botoes de desabilitar - CORRIGIDO: agora usa ENV.adminPassword
+- [x] Erro ao enviar RDX para usuario no painel admin - CORRIGIDO: funcao sendRdxToUser funciona corretamente
+- [x] Preco do RDX nao muda quando RDX e movimentado - CORRIGIDO: pool agora e atualizado em coleta e venda
+- [x] Adicionar funcionalidade de enviar USDT no painel admin - IMPLEMENTADO: funcao sendUsdtToUser adicionada
+- [x] Adicionar funcionalidade de enviar RDX para qualquer ID no painel admin - IMPLEMENTADO: botoes de envio adicionados
