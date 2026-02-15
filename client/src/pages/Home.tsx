@@ -77,7 +77,7 @@ export default function Home() {
 
   const handleCollect = async () => {
     try {
-      const result = await collectMutation.mutateAsync();
+      const result = await collectMutation.mutateAsync({ rdxAmount: accumulatedProfit });
       toast.success(`Coletado ${result.rdxCollected} RDX!`);
       // Limpar ganhos acumulados após coletar
       if (user?.id) {

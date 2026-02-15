@@ -121,3 +121,8 @@
 - [x] Ganhos não persistem ao sair do site - CORRIGIDO usando localStorage em vez de sessionStorage
 - [x] Ganhos acumulados enquanto fora do app - IMPLEMENTADO cálculo de gap temporal
 - [x] Ganhos só salvam no banco quando clicar em "Coletar RDX" - MANTIDO como esperado
+
+## Correções Finais (Fevereiro 2026)
+- [x] Saldo RDX aumentando do nada - CORRIGIDO: frontend envia valor exato do ganho em tempo real
+- [x] Coletar RDX nao creditava corretamente - CORRIGIDO: agora credita exatamente o valor do ganho em tempo real
+- [x] Venda de itens nao adicionava ao saldo RDX - CORRIGIDO: agora adiciona 50% do preco de compra em RDX

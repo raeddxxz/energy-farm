@@ -64,25 +64,18 @@ export const appRouter = router({
         return { success: true, newBalance };
       }),
 
-    collectRewards: protectedProcedure.mutation(async ({ ctx }) => {
-      const items = await db.getUserItems(ctx.user.id);
-      const now = new Date();
-      let totalRdxRewards = 0;
+    collectRewards: protectedProcedure
+      .input(z.object({ rdxAmount: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        // Usar o valor exato enviado pelo frontend (ganho em tempo real)
+        const rdxToCollect = input.rdxAmount;
+        
+        const currentRdx = parseFloat(await db.getUserRdxBalance(ctx.user.id));
+        const newRdxBalance = (currentRdx + rdxToCollect).toFixed(8);
+        await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
 
-      for (const item of items) {
-        if (new Date(item.expiresAt) > now) {
-          const daysPassed = (now.getTime() - new Date(item.purchasedAt).getTime()) / (1000 * 60 * 60 * 24);
-          const rewards = parseFloat(item.dailyProfit) * daysPassed;
-          totalRdxRewards += rewards;
-        }
-      }
-
-      const currentRdx = parseFloat(await db.getUserRdxBalance(ctx.user.id));
-      const newRdxBalance = (currentRdx + totalRdxRewards).toFixed(8);
-      await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
-
-      return { success: true, rdxCollected: totalRdxRewards.toFixed(8), newRdxBalance };
-    }),
+        return { success: true, rdxCollected: rdxToCollect.toFixed(8), newRdxBalance };
+      }),
 
     sellItem: protectedProcedure
       .input(z.object({ itemId: z.number() }))
@@ -94,17 +87,20 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Item not found" });
         }
 
-        const sellPrice = parseFloat(item.purchasePrice) * 0.5;
-        const user = await db.getUserById(ctx.user.id);
-        if (!user) {
-          throw new TRPCError({ code: "UNAUTHORIZED" });
-        }
-
-        const newBalance = (parseFloat(user.balance) + sellPrice).toFixed(8);
-        await db.updateUserBalance(ctx.user.id, newBalance);
+        // Calcular preco de venda em RDX (50% do preco de compra em RDX)
+        // purchasePrice esta em USDT, entao multiplicar por 1000 para converter para RDX
+        const purchasePriceRdx = parseFloat(item.purchasePrice) * 1000;
+        const sellPriceRdx = purchasePriceRdx * 0.5;
+        
+        // Adicionar ao saldo RDX do usuario
+        const currentRdx = parseFloat(await db.getUserRdxBalance(ctx.user.id));
+        const newRdxBalance = (currentRdx + sellPriceRdx).toFixed(8);
+        await db.updateUserRdxBalance(ctx.user.id, newRdxBalance);
+        
+        // Remover o item
         await db.deleteUserItem(input.itemId);
 
-        return { success: true, sellPrice: sellPrice.toFixed(8), newBalance };
+        return { success: true, sellPrice: sellPriceRdx.toFixed(8), newBalance: newRdxBalance };
       }),
   }),
 
