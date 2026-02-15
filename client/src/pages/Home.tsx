@@ -1,17 +1,19 @@
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 export default function Home() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [totalDailyProfit, setTotalDailyProfit] = useState(0);
   const [accumulatedProfit, setAccumulatedProfit] = useState(0);
+  const [sellConfirm, setSellConfirm] = useState<{ itemId: number; itemType: string; price: string } | null>(null);
 
   const { data: items, isLoading, refetch: refetchItems } = trpc.generators.getUserItems.useQuery();
   const collectMutation = trpc.generators.collectRewards.useMutation();
@@ -103,13 +105,13 @@ export default function Home() {
           <div className="text-center">
             <p className="text-slate-400 text-sm mb-2">{t("principal.totalDaily")}</p>
             <div className="flex items-baseline justify-center gap-2">
-              <span className="text-4xl font-bold text-green-400">
+              <span className="text-4xl font-bold text-purple-400">
                 {totalDailyProfit.toFixed(4)}
               </span>
-              <span className="text-slate-400">/ dia</span>
+              <span className="text-slate-400">RDX / dia</span>
             </div>
             <p className="text-slate-500 text-sm mt-2">
-              Ganho em tempo real: +{accumulatedProfit.toFixed(6)}
+              Ganho em tempo real: +{accumulatedProfit.toFixed(6)} RDX
             </p>
             <Button
               onClick={handleCollect}
@@ -147,16 +149,9 @@ export default function Home() {
                 </div>
                 <div className="flex gap-2 mt-3">
                   <Button
-                    onClick={async () => {
+                    onClick={() => {
                       const sellPrice = (parseFloat(item.purchasePrice) * 0.5).toFixed(8);
-                      try {
-                        await sellMutation.mutateAsync({ itemId: item.id });
-                        toast.success(`Vendido por ${sellPrice} USDT`);
-                        refetchItems();
-                        refetchBalance();
-                      } catch (error: any) {
-                        toast.error(error.message || "Erro");
-                      }
+                      setSellConfirm({ itemId: item.id, itemType: item.itemType, price: sellPrice });
                     }}
                     disabled={sellMutation.isPending}
                     variant="outline"
@@ -164,9 +159,6 @@ export default function Home() {
                   >
                     {sellMutation.isPending ? <Loader2 className="animate-spin" size={12} /> : "Vender"}
                   </Button>
-                  <div className="flex-1 bg-slate-700 rounded px-2 py-1 text-xs text-slate-300 text-center">
-                    Receber: {(parseFloat(item.purchasePrice) * 0.5).toFixed(8)} USDT
-                  </div>
                 </div>
               </Card>
             ))}
@@ -183,6 +175,46 @@ export default function Home() {
           </Card>
         )}
       </div>
+
+      <Dialog open={!!sellConfirm} onOpenChange={() => setSellConfirm(null)}>
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Confirmar Venda
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-slate-300">
+            <p>Você quer vender o item <span className="font-semibold">{sellConfirm?.itemType}</span> por <span className="font-semibold text-green-400">{sellConfirm?.price} USDT</span>?</p>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => setSellConfirm(null)}
+              variant="outline"
+              className="bg-slate-700 hover:bg-slate-600 text-white"
+            >
+              Não
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!sellConfirm) return;
+                try {
+                  await sellMutation.mutateAsync({ itemId: sellConfirm.itemId });
+                  toast.success(`Vendido por ${sellConfirm.price} USDT`);
+                  setSellConfirm(null);
+                  refetchItems();
+                  refetchBalance();
+                } catch (error: any) {
+                  toast.error(error.message || "Erro");
+                }
+              }}
+              disabled={sellMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {sellMutation.isPending ? <Loader2 className="animate-spin" size={16} /> : "Sim"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

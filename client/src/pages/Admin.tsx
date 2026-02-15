@@ -23,8 +23,8 @@ export default function Admin() {
   const { data: stats } = trpc.admin.getStats.useQuery();
   const verifyPasswordMutation = trpc.admin.verifyPassword.useMutation();
   const burnRdxMutation = trpc.admin.burnRdx.useMutation();
-  const addRdxMutation = trpc.admin.addRdx.useMutation();
-  const sendRdxMutation = trpc.admin.sendRdx.useMutation();
+  const addRdxMutation = trpc.admin.addRdxToPool.useMutation();
+  const sendRdxMutation = trpc.admin.sendRdxToUser.useMutation();
   const toggleDepositsMutation = trpc.admin.toggleDeposits.useMutation();
   const toggleWithdrawsMutation = trpc.admin.toggleWithdraws.useMutation();
   const toggleConversionsMutation = trpc.admin.toggleConversions.useMutation();
@@ -173,21 +173,42 @@ export default function Admin() {
         {activeTab === "settings" && (
           <div className="space-y-4">
             <Button
-              onClick={() => toggleDepositsMutation.mutateAsync({ password })}
+              onClick={async () => {
+                try {
+                  await toggleDepositsMutation.mutateAsync({ password, enabled: true });
+                  toast.success("Depósitos toggled!");
+                } catch (error) {
+                  toast.error("Erro");
+                }
+              }}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleDepositsMutation.isPending}
             >
               Toggle Deposits
             </Button>
             <Button
-              onClick={() => toggleWithdrawsMutation.mutateAsync({ password })}
+              onClick={async () => {
+                try {
+                  await toggleWithdrawsMutation.mutateAsync({ password, enabled: true });
+                  toast.success("Saques toggled!");
+                } catch (error) {
+                  toast.error("Erro");
+                }
+              }}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleWithdrawsMutation.isPending}
             >
               Toggle Withdraws
             </Button>
             <Button
-              onClick={() => toggleConversionsMutation.mutateAsync({ password })}
+              onClick={async () => {
+                try {
+                  await toggleConversionsMutation.mutateAsync({ password, enabled: true });
+                  toast.success("Conversões toggled!");
+                } catch (error) {
+                  toast.error("Erro");
+                }
+              }}
               className="w-full bg-red-600 hover:bg-red-700"
               disabled={toggleConversionsMutation.isPending}
             >

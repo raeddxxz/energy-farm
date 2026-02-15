@@ -98,3 +98,14 @@
 - [ ] Mostrar ganhos totais por referências
 - [ ] Adicionar menu "Referência" no menu inferior
 - [ ] Testar sistema de referral completo
+
+## Fase 4 - Alterações de Exibição (Fevereiro 2026)
+- [x] Exibir ganhos diários em RDX na página principal
+- [x] Exibir ganhos em tempo real em RDX
+- [x] Exibir valores de itens comprados em RDX
+- [x] Remover texto "receber X USDT" do botão de venda
+- [x] Implementar modal de confirmação para venda de itens
+- [x] Modal mostra "Você quer vender o item X por X USDT?" com Yes/No
+- [x] Adicionar traduções para modal em todos os 7 idiomas
+- [x] Testar funcionamento do modal
+- [x] Verificar se todos os testes passam
