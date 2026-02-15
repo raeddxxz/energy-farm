@@ -68,3 +68,18 @@
 - [x] Adicionar seletor de cripto (TON ou USDT BEP20) no depósito
 - [x] Atualizar interface para mostrar endereços separados por rede
 - [x] Testar endereços gerados em exploradores de blockchain
+
+
+## Novas Alterações - Fase 2
+- [ ] Corrigir persistência de ganhos em tempo real (salvar no BD)
+- [ ] Converter preços dos itens de USDT para RDX (fixo)
+- [ ] Implementar autenticação com senha no painel admin (Rdx151208$71890@)
+- [ ] Adicionar controles de desabilitar depósitos, saques e conversão
+- [ ] Implementar sistema de queimar RDX no pool
+- [ ] Implementar sistema de adicionar RDX no pool
+- [ ] Adicionar sistema de envio de RDX para usuários
+- [ ] Implementar sistema de referral com link único por usuário
+- [ ] Adicionar ganho de 10% do depósito para quem convidou
+- [ ] Criar novo menu "Referência" no menu inferior
+- [ ] Mostrar total de USDT circulando (depósitos - saques) no admin
+- [ ] Mostrar volume total de RDX circulando no admin

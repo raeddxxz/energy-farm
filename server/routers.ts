@@ -299,9 +299,130 @@ export const appRouter = router({
       if (ctx.user.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN" });
       }
-
       return db.getAllDepositRequests();
     }),
+
+    verifyPassword: protectedProcedure
+      .input(z.object({ password: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const isValid = input.password === "Rdx151208$71890@";
+        return { valid: isValid };
+      }),
+
+    getSettings: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+      const depositsDisabled = await db.getAdminSetting("depositsDisabled");
+      const withdrawsDisabled = await db.getAdminSetting("withdrawsDisabled");
+      const conversionsDisabled = await db.getAdminSetting("conversionsDisabled");
+      const totalUsdt = await db.getTotalUsdtInCirculation();
+      const rdxPool = await db.getRdxPoolStats();
+      const userCount = await db.getUserCount();
+
+      return {
+        depositsDisabled: depositsDisabled === "true",
+        withdrawsDisabled: withdrawsDisabled === "true",
+        conversionsDisabled: conversionsDisabled === "true",
+        totalUsdtInCirculation: totalUsdt,
+        totalRdxInCirculation: rdxPool.totalRdxInCirculation,
+        totalRdxBurned: rdxPool.totalRdxBurned,
+        userCount,
+      };
+    }),
+
+    toggleDeposits: protectedProcedure
+      .input(z.object({ password: z.string(), enabled: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== "Rdx151208$71890@") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        await db.setAdminSetting("depositsDisabled", input.enabled ? "false" : "true");
+        await db.logAdminAction("toggle_deposits", `Deposits ${input.enabled ? "enabled" : "disabled"}`);
+        return { success: true };
+      }),
+
+    toggleWithdraws: protectedProcedure
+      .input(z.object({ password: z.string(), enabled: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== "Rdx151208$71890@") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        await db.setAdminSetting("withdrawsDisabled", input.enabled ? "false" : "true");
+        await db.logAdminAction("toggle_withdraws", `Withdraws ${input.enabled ? "enabled" : "disabled"}`);
+        return { success: true };
+      }),
+
+    toggleConversions: protectedProcedure
+      .input(z.object({ password: z.string(), enabled: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== "Rdx151208$71890@") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        await db.setAdminSetting("conversionsDisabled", input.enabled ? "false" : "true");
+        await db.logAdminAction("toggle_conversions", `Conversions ${input.enabled ? "enabled" : "disabled"}`);
+        return { success: true };
+      }),
+
+    burnRdx: protectedProcedure
+      .input(z.object({ password: z.string(), amount: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== "Rdx151208$71890@") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        const pool = await db.getRdxPoolStats();
+        const burned = Number(pool.totalRdxBurned) + Number(input.amount);
+        await db.updateRdxPool(pool.totalRdxInCirculation, burned.toString());
+        await db.logAdminAction("burn_rdx", `Burned ${input.amount} RDX`);
+        return { success: true };
+      }),
+
+    addRdxToPool: protectedProcedure
+      .input(z.object({ password: z.string(), amount: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== "Rdx151208$71890@") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        const pool = await db.getRdxPoolStats();
+        const inCirculation = Number(pool.totalRdxInCirculation) + Number(input.amount);
+        await db.updateRdxPool(inCirculation.toString(), pool.totalRdxBurned);
+        await db.logAdminAction("add_rdx", `Added ${input.amount} RDX to pool`);
+        return { success: true };
+      }),
+
+    sendRdxToUser: protectedProcedure
+      .input(z.object({ password: z.string(), userId: z.number(), amount: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        if (input.password !== "Rdx151208$71890@") {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid password" });
+        }
+        const currentRdx = parseFloat(await db.getUserRdxBalance(input.userId));
+        const newRdx = (currentRdx + Number(input.amount)).toFixed(8);
+        await db.updateUserRdxBalance(input.userId, newRdx);
+        await db.logAdminAction("send_rdx", `Sent ${input.amount} RDX to user ${input.userId}`);
+        return { success: true };
+      }),
   }),
 });
 

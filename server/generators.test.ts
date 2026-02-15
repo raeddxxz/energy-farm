@@ -30,9 +30,9 @@ describe("Generators", () => {
 
     expect(generators).toHaveLength(6);
     expect(generators[0].id).toBe("catavento");
-    expect(generators[0].cost).toBe(0.5);
+    expect(generators[0].cost).toBe(500); // 0.5 USDT = 500 RDX
     expect(generators[5].id).toBe("reator_nuclear");
-    expect(generators[5].cost).toBe(1000);
+    expect(generators[5].cost).toBe(1000000); // 1000 USDT = 1000000 RDX
   });
 
   it("should get user items", async () => {

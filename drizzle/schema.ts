@@ -119,3 +119,49 @@ export const conversions = mysqlTable("conversions", {
 
 export type Conversion = typeof conversions.$inferSelect;
 export type InsertConversion = typeof conversions.$inferInsert;
+
+// Tabela de referrals
+export const referrals = mysqlTable("referrals", {
+  id: int("id").autoincrement().primaryKey(),
+  referrerId: int("referrerId").notNull(),
+  referralCode: varchar("referralCode", { length: 50 }).notNull().unique(),
+  referredUserId: int("referredUserId"),
+  totalEarned: decimal("totalEarned", { precision: 20, scale: 8 }).default("0").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = typeof referrals.$inferInsert;
+
+// Tabela de configurações administrativas
+export const adminSettings = mysqlTable("adminSettings", {
+  id: int("id").autoincrement().primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type InsertAdminSetting = typeof adminSettings.$inferInsert;
+
+// Tabela de pool de RDX (para controlar economia)
+export const rdxPool = mysqlTable("rdxPool", {
+  id: int("id").autoincrement().primaryKey(),
+  totalRdxInCirculation: decimal("totalRdxInCirculation", { precision: 20, scale: 8 }).default("0").notNull(),
+  totalRdxBurned: decimal("totalRdxBurned", { precision: 20, scale: 8 }).default("0").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type RdxPool = typeof rdxPool.$inferSelect;
+export type InsertRdxPool = typeof rdxPool.$inferInsert;
+
+// Tabela de histórico de ações admin
+export const adminActions = mysqlTable("adminActions", {
+  id: int("id").autoincrement().primaryKey(),
+  action: varchar("action", { length: 100 }).notNull(),
+  details: text("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AdminAction = typeof adminActions.$inferSelect;
+export type InsertAdminAction = typeof adminActions.$inferInsert;

@@ -1,4 +1,4 @@
-import { eq, and, gte, lte, desc, sum } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sum, count } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 
 import { InsertUser, users, userItems, InsertUserItem, transactions, InsertTransaction, depositRequests, InsertDepositRequest, userRdxBalance, InsertUserRdxBalance, rdxPriceHistory, InsertRdxPriceHistory, conversions, InsertConversion } from "../drizzle/schema";
@@ -314,4 +314,178 @@ export async function deleteUserItem(itemId: number) {
   if (!db) throw new Error("Database not available");
   
   await db.delete(userItems).where(eq(userItems.id, itemId));
+}
+
+
+// Funções de Referral
+export async function createReferral(referrerId: number, referralCode: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { referrals } = await import("../drizzle/schema");
+  await db.insert(referrals).values({
+    referrerId,
+    referralCode,
+  });
+}
+
+export async function getReferralByCode(code: string) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const { referrals } = await import("../drizzle/schema");
+  const result = await db.select().from(referrals)
+    .where(eq(referrals.referralCode, code))
+    .limit(1);
+  
+  return result[0] || null;
+}
+
+export async function getReferralByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const { referrals } = await import("../drizzle/schema");
+  const result = await db.select().from(referrals)
+    .where(eq(referrals.referrerId, userId))
+    .limit(1);
+  
+  return result[0] || null;
+}
+
+export async function updateReferralEarnings(referralId: number, amount: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { referrals } = await import("../drizzle/schema");
+  const referral = await db.select().from(referrals)
+    .where(eq(referrals.id, referralId))
+    .limit(1);
+  
+  if (referral[0]) {
+    const currentEarnings = Number(referral[0].totalEarned) || 0;
+    await db.update(referrals)
+      .set({ totalEarned: (currentEarnings + amount).toString() })
+      .where(eq(referrals.id, referralId));
+  }
+}
+
+// Funções de Admin Settings
+export async function getAdminSetting(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  
+  const { adminSettings } = await import("../drizzle/schema");
+  const result = await db.select().from(adminSettings)
+    .where(eq(adminSettings.key, key))
+    .limit(1);
+  
+  return result[0]?.value || null;
+}
+
+export async function setAdminSetting(key: string, value: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { adminSettings } = await import("../drizzle/schema");
+  
+  const existing = await db.select().from(adminSettings)
+    .where(eq(adminSettings.key, key))
+    .limit(1);
+  
+  if (existing[0]) {
+    await db.update(adminSettings)
+      .set({ value })
+      .where(eq(adminSettings.key, key));
+  } else {
+    await db.insert(adminSettings).values({ key, value });
+  }
+}
+
+// Funções de RDX Pool
+export async function getRdxPoolStats() {
+  const db = await getDb();
+  if (!db) return { totalRdxInCirculation: "0", totalRdxBurned: "0" };
+  
+  const { rdxPool } = await import("../drizzle/schema");
+  const result = await db.select().from(rdxPool).limit(1);
+  
+  return result[0] || { totalRdxInCirculation: "0", totalRdxBurned: "0" };
+}
+
+export async function updateRdxPool(inCirculation: string, burned: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { rdxPool } = await import("../drizzle/schema");
+  
+  const existing = await db.select().from(rdxPool).limit(1);
+  
+  if (existing[0]) {
+    await db.update(rdxPool)
+      .set({ 
+        totalRdxInCirculation: inCirculation,
+        totalRdxBurned: burned
+      })
+      .where(eq(rdxPool.id, existing[0].id));
+  } else {
+    await db.insert(rdxPool).values({
+      totalRdxInCirculation: inCirculation,
+      totalRdxBurned: burned,
+    });
+  }
+}
+
+// Funções de Admin Actions
+export async function logAdminAction(action: string, details?: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { adminActions } = await import("../drizzle/schema");
+  await db.insert(adminActions).values({
+    action,
+    details,
+  });
+}
+
+export async function getAdminActionHistory(limit: number = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const { adminActions } = await import("../drizzle/schema");
+  return db.select().from(adminActions)
+    .orderBy(desc(adminActions.createdAt))
+    .limit(limit);
+}
+
+// Função para calcular total de USDT circulando
+export async function getTotalUsdtInCirculation(): Promise<string> {
+  const db = await getDb();
+  if (!db) return "0";
+  
+  const { transactions } = await import("../drizzle/schema");
+  const result = await db.select({ total: sum(transactions.amount) })
+    .from(transactions)
+    .where(eq(transactions.type, "deposit" as any));
+  
+  const deposits = Number(result[0]?.total || 0);
+  
+  const withdrawResult = await db.select({ total: sum(transactions.amount) })
+    .from(transactions)
+    .where(eq(transactions.type, "withdrawal" as any));
+  
+  const withdraws = Number(withdrawResult[0]?.total || 0);
+  
+  return (deposits - withdraws).toString();
+}
+
+
+export async function getUserCount(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  const result = await db.select({ count: count() })
+    .from(users);
+  
+  return result[0]?.count || 0;
 }
