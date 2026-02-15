@@ -424,6 +424,53 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  referral: router({
+    createReferralCode: protectedProcedure.mutation(async ({ ctx }) => {
+      const existing = await db.getReferralByUserId(ctx.user.id);
+      if (existing) {
+        return { code: existing.referralCode };
+      }
+      
+      const code = `REF${ctx.user.id}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      await db.createReferral(ctx.user.id, code);
+      return { code };
+    }),
+
+    getReferralCode: protectedProcedure.query(async ({ ctx }) => {
+      const referral = await db.getReferralByUserId(ctx.user.id);
+      return referral?.referralCode || null;
+    }),
+
+    getReferralStats: protectedProcedure.query(async ({ ctx }) => {
+      const referral = await db.getReferralByUserId(ctx.user.id);
+      if (!referral) {
+        return { referralCode: null, totalEarned: "0", referredCount: 0 };
+      }
+      
+      return {
+        referralCode: referral.referralCode,
+        totalEarned: referral.totalEarned.toString(),
+        referredCount: referral.referredUserId ? 1 : 0,
+      };
+    }),
+
+    applyReferralCode: protectedProcedure
+      .input(z.object({ referralCode: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const referral = await db.getReferralByCode(input.referralCode);
+        if (!referral) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Invalid referral code" });
+        }
+        
+        if (referral.referrerId === ctx.user.id) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Cannot use your own referral code" });
+        }
+        
+        await db.updateReferralReferredUser(referral.id, ctx.user.id);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

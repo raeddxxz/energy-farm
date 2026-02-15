@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Home, ShoppingCart, Wallet, Settings } from "lucide-react";
+import { Home, ShoppingCart, Wallet, Settings, Users } from "lucide-react";
 
 export default function BottomNav() {
   const [location, navigate] = useLocation();
@@ -10,6 +10,7 @@ export default function BottomNav() {
     { path: "/", label: t("nav.principal"), icon: Home },
     { path: "/shop", label: t("nav.loja"), icon: ShoppingCart },
     { path: "/wallet", label: t("nav.carteira"), icon: Wallet },
+    { path: "/referral", label: t("referral.title"), icon: Users },
     { path: "/settings", label: t("nav.configuracoes"), icon: Settings },
   ];
 

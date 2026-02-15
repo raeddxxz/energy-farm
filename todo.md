@@ -83,3 +83,18 @@
 - [ ] Criar novo menu "Referência" no menu inferior
 - [ ] Mostrar total de USDT circulando (depósitos - saques) no admin
 - [ ] Mostrar volume total de RDX circulando no admin
+
+
+## Fase 3 - Interface Admin e Referral
+- [ ] Criar interface do painel admin com autenticação de senha
+- [ ] Implementar controles de toggle para depósitos/saques/conversão
+- [ ] Adicionar formulários para queimar/adicionar RDX
+- [ ] Adicionar formulário para enviar RDX para usuários
+- [ ] Implementar geração de link único de referência por usuário
+- [ ] Criar rastreamento de referidos
+- [ ] Implementar crédito automático de 10% do depósito
+- [ ] Criar página de referência com link de convite
+- [ ] Mostrar número de referidos na página
+- [ ] Mostrar ganhos totais por referências
+- [ ] Adicionar menu "Referência" no menu inferior
+- [ ] Testar sistema de referral completo

@@ -10,6 +10,7 @@ import Shop from "./pages/Shop";
 import Wallet from "./pages/Wallet";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Referral from "./pages/Referral";
 import BottomNav from "./components/BottomNav";
 
 function Router() {
@@ -19,6 +20,7 @@ function Router() {
         <Route path={"/"} component={Home} />
         <Route path={"/shop"} component={Shop} />
         <Route path={"/wallet"} component={Wallet} />
+        <Route path={"/referral"} component={Referral} />
         <Route path={"/settings"} component={Settings} />
         <Route path={"/admin"} component={Admin} />
         <Route path={"/404"} component={NotFound} />

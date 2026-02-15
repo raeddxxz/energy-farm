@@ -489,3 +489,14 @@ export async function getUserCount(): Promise<number> {
   
   return result[0]?.count || 0;
 }
+
+
+export async function updateReferralReferredUser(referralId: number, referredUserId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const { referrals } = await import("../drizzle/schema");
+  await db.update(referrals)
+    .set({ referredUserId })
+    .where(eq(referrals.id, referralId));
+}
