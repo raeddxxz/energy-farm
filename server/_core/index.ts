@@ -51,9 +51,13 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  // In production, always use the preferred port (no fallback to alternatives)
+  // In development, try alternative ports if the preferred one is busy
+  const port = process.env.NODE_ENV === "production" 
+    ? preferredPort 
+    : await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
+  if (port !== preferredPort && process.env.NODE_ENV === "development") {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
